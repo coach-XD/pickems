@@ -1,0 +1,251 @@
+import { asc, eq, inArray } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
+import { getDb } from "@/db";
+import { matchPicks, matches, placementPicks, players, stageTeams, stages, teams } from "@/db/schema";
+import { rankRows, type RankedScore } from "./ranking";
+import { addStageScores, emptyStageScore, scorePlayerStage } from "./scoring";
+import { deriveStandings, groupByRecord } from "./swiss";
+import type { SeriesFormat, Slot } from "./types";
+
+export type StageRow = typeof stages.$inferSelect;
+export type PlayerRow = typeof players.$inferSelect;
+
+export type StageTeamView = {
+  stageTeamId: string;
+  teamId: string;
+  name: string;
+  shortName: string;
+  logoUrl: string | null;
+  region: string | null;
+  seed: number;
+  worldRank: number | null;
+  otherRank: number | null;
+};
+
+export type MatchView = {
+  id: string;
+  stageId: string;
+  round: number;
+  format: SeriesFormat;
+  scheduledAt: Date;
+  winnerId: string | null;
+  scoreA: number | null;
+  scoreB: number | null;
+  teamAId: string;
+  teamBId: string;
+  teamAName: string;
+  teamAShort: string;
+  teamALogo: string | null;
+  teamBName: string;
+  teamBShort: string;
+  teamBLogo: string | null;
+};
+
+export async function listStages(includeDemo: boolean): Promise<StageRow[]> {
+  const rows = await getDb().select().from(stages).orderBy(asc(stages.sortOrder), asc(stages.startsAt));
+  return includeDemo ? rows : rows.filter((stage) => !stage.isDemo);
+}
+
+export async function hasDemoStage(): Promise<boolean> {
+  const [row] = await getDb().select({ id: stages.id }).from(stages).where(eq(stages.isDemo, true)).limit(1);
+  return Boolean(row);
+}
+
+export async function getStageBySlug(slug: string): Promise<StageRow | null> {
+  const [stage] = await getDb().select().from(stages).where(eq(stages.slug, slug)).limit(1);
+  return stage ?? null;
+}
+
+export async function getStageById(id: string): Promise<StageRow | null> {
+  const [stage] = await getDb().select().from(stages).where(eq(stages.id, id)).limit(1);
+  return stage ?? null;
+}
+
+export async function listStageTeams(stageId: string): Promise<StageTeamView[]> {
+  return getDb()
+    .select({
+      stageTeamId: stageTeams.id,
+      teamId: teams.id,
+      name: teams.name,
+      shortName: teams.shortName,
+      logoUrl: teams.logoUrl,
+      region: teams.region,
+      seed: stageTeams.seed,
+      worldRank: stageTeams.worldRank,
+      otherRank: stageTeams.otherRank,
+    })
+    .from(stageTeams)
+    .innerJoin(teams, eq(teams.id, stageTeams.teamId))
+    .where(eq(stageTeams.stageId, stageId))
+    .orderBy(asc(stageTeams.seed));
+}
+
+export async function listStageMatches(stageId: string): Promise<MatchView[]> {
+  const teamA = alias(teams, "team_a");
+  const teamB = alias(teams, "team_b");
+  const rows = await getDb()
+    .select({
+      id: matches.id,
+      stageId: matches.stageId,
+      round: matches.round,
+      format: matches.format,
+      scheduledAt: matches.scheduledAt,
+      winnerId: matches.winnerId,
+      scoreA: matches.scoreA,
+      scoreB: matches.scoreB,
+      teamAId: matches.teamAId,
+      teamBId: matches.teamBId,
+      teamAName: teamA.name,
+      teamAShort: teamA.shortName,
+      teamALogo: teamA.logoUrl,
+      teamBName: teamB.name,
+      teamBShort: teamB.shortName,
+      teamBLogo: teamB.logoUrl,
+    })
+    .from(matches)
+    .innerJoin(teamA, eq(teamA.id, matches.teamAId))
+    .innerJoin(teamB, eq(teamB.id, matches.teamBId))
+    .where(eq(matches.stageId, stageId))
+    .orderBy(asc(matches.round), asc(matches.scheduledAt), asc(matches.createdAt));
+  return rows;
+}
+
+export async function listPlayers(includeDemo: boolean): Promise<PlayerRow[]> {
+  const rows = await getDb().select().from(players).orderBy(asc(players.displayName));
+  return includeDemo ? rows : rows.filter((player) => !player.isDemo);
+}
+
+export async function getLeaderboard(stageIds: string[], includeDemoPlayers: boolean): Promise<RankedScore[]> {
+  const roster = await listPlayers(includeDemoPlayers);
+  if (stageIds.length === 0) {
+    return rankRows(
+      roster.map((player) => ({
+        playerId: player.id,
+        name: player.displayName,
+        ...emptyStageScore(),
+      })),
+    );
+  }
+
+  const db = getDb();
+  const matchRows = await db.select().from(matches).where(inArray(matches.stageId, stageIds));
+  const matchIds = matchRows.map((match) => match.id);
+  const seriesPicks = matchIds.length
+    ? await db.select().from(matchPicks).where(inArray(matchPicks.matchId, matchIds))
+    : [];
+  const slotPicks = await db.select().from(placementPicks).where(inArray(placementPicks.stageId, stageIds));
+  const enrolled = await db.select().from(stageTeams).where(inArray(stageTeams.stageId, stageIds));
+
+  const recordsByStage = new Map<string, Map<string, { wins: number; losses: number }>>();
+  for (const stageId of stageIds) {
+    const standings = deriveStandings(
+      enrolled.filter((row) => row.stageId === stageId).map((row) => ({ teamId: row.teamId, seed: row.seed })),
+      matchRows
+        .filter((match) => match.stageId === stageId)
+        .map((match) => ({
+          round: match.round,
+          scheduledAt: match.scheduledAt,
+          teamAId: match.teamAId,
+          teamBId: match.teamBId,
+          winnerId: match.winnerId,
+        })),
+    );
+    recordsByStage.set(
+      stageId,
+      new Map(standings.map((row) => [row.teamId, { wins: row.wins, losses: row.losses }])),
+    );
+  }
+
+  return rankRows(
+    roster.map((player) => {
+      const total = stageIds.reduce((sum, stageId) => {
+        const stageMatches = matchRows.filter((match) => match.stageId === stageId);
+        const score = scorePlayerStage({
+          matches: stageMatches,
+          matchPicks: seriesPicks
+            .filter((pick) => pick.playerId === player.id && stageMatches.some((match) => match.id === pick.matchId))
+            .map((pick) => ({
+              matchId: pick.matchId,
+              winnerId: pick.winnerId,
+              scoreA: pick.scoreA,
+              scoreB: pick.scoreB,
+            })),
+          placementPicks: slotPicks
+            .filter((pick) => pick.playerId === player.id && pick.stageId === stageId)
+            .map((pick) => ({ teamId: pick.teamId, slot: pick.slot })),
+          records: recordsByStage.get(stageId) ?? new Map(),
+        });
+        return addStageScores(sum, score);
+      }, emptyStageScore());
+      return { playerId: player.id, name: player.displayName, ...total };
+    }),
+  );
+}
+
+export async function stageBundle(stageId: string) {
+  const teamsInStage = await listStageTeams(stageId);
+  const series = await listStageMatches(stageId);
+  const standings = deriveStandings(
+    teamsInStage.map((team) => ({ teamId: team.teamId, seed: team.seed })),
+    series.map((match) => ({
+      round: match.round,
+      scheduledAt: match.scheduledAt,
+      teamAId: match.teamAId,
+      teamBId: match.teamBId,
+      winnerId: match.winnerId,
+    })),
+  ).map((row) => ({
+    ...row,
+    team: teamsInStage.find((team) => team.teamId === row.teamId)!,
+  }));
+  return {
+    teams: teamsInStage,
+    matches: series,
+    standings,
+    pools: groupByRecord(standings),
+  };
+}
+
+export async function picksForPlayer(playerId: string, stageId: string, matchIds: string[]) {
+  const db = getDb();
+  const slots = await db
+    .select()
+    .from(placementPicks)
+    .where(eq(placementPicks.playerId, playerId));
+  const series = matchIds.length
+    ? await db.select().from(matchPicks).where(eq(matchPicks.playerId, playerId))
+    : [];
+  return {
+    placements: slots
+      .filter((pick) => pick.stageId === stageId)
+      .map((pick) => ({ teamId: pick.teamId, slot: pick.slot as Slot })),
+    matches: series
+      .filter((pick) => matchIds.includes(pick.matchId))
+      .map((pick) => ({
+        matchId: pick.matchId,
+        winnerId: pick.winnerId,
+        scoreA: pick.scoreA,
+        scoreB: pick.scoreB,
+      })),
+  };
+}
+
+export async function allPicksForStage(stageId: string, matchIds: string[]) {
+  const db = getDb();
+  const slots = await db.select().from(placementPicks).where(eq(placementPicks.stageId, stageId));
+  const series = matchIds.length ? await db.select().from(matchPicks).where(inArray(matchPicks.matchId, matchIds)) : [];
+  return { slots, series };
+}
+
+export async function adminStageSummaries() {
+  const db = getDb();
+  const stageRows = await db.select().from(stages).orderBy(asc(stages.sortOrder), asc(stages.startsAt));
+  const teamRows = await db.select({ stageId: stageTeams.stageId }).from(stageTeams);
+  const matchRows = await db.select({ stageId: matches.stageId, winnerId: matches.winnerId }).from(matches);
+  return stageRows.map((stage) => ({
+    ...stage,
+    teamCount: teamRows.filter((row) => row.stageId === stage.id).length,
+    matchCount: matchRows.filter((row) => row.stageId === stage.id).length,
+    playedCount: matchRows.filter((row) => row.stageId === stage.id && row.winnerId).length,
+  }));
+}
