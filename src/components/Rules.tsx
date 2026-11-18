@@ -1,6 +1,6 @@
 export function Rules() {
   return (
-    <details className="rounded-2xl border border-white/10 bg-zinc-900/60 px-4 py-3 text-sm text-zinc-300">
+    <details className="rounded-xl border border-white/10 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-300">
       <summary className="cursor-pointer font-semibold text-zinc-100">Scoring and locks</summary>
       <ul className="mt-3 space-y-1.5 text-[13px] leading-5 text-zinc-400">
         <li>Click winners on the bracket. The 3-0s, 0-3s, and the other advancers are read off that bracket.</li>

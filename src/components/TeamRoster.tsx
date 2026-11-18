@@ -10,28 +10,23 @@ export function PicksFrame({ teams, children }: { teams: StageRosterTeam[]; chil
   const [open, setOpen] = useState(false);
   const showRoster = teams.length > 0;
   return (
-    <div className="flex flex-col xl:h-full xl:min-h-0 xl:flex-row xl:items-stretch xl:gap-2">
+    <div className="flex flex-col items-start gap-3 xl:flex-row">
       {showRoster ? (
-        <aside
-          className={cx(
-            "xl:order-first xl:block xl:h-full xl:w-[328px] xl:shrink-0 xl:overflow-hidden",
-            open ? "order-last mt-3 block" : "hidden xl:block",
-          )}
-        >
+        <aside className={cx("w-full xl:order-first xl:w-[300px] xl:shrink-0", open ? "order-last block" : "hidden xl:block")}>
           <RosterGrid teams={teams} />
         </aside>
       ) : null}
-      <div className="flex min-w-0 flex-col xl:h-full xl:min-h-0 xl:flex-1">
+      <div className="w-full min-w-0 xl:flex-1">
         {showRoster ? (
           <button
             type="button"
             onClick={() => setOpen((value) => !value)}
-            className="mb-2 h-9 rounded-lg border border-white/15 px-3 text-xs font-semibold text-zinc-200 xl:hidden"
+            className="mb-2 h-8 rounded-lg border border-white/15 px-3 text-xs font-semibold text-zinc-200 xl:hidden"
           >
             {open ? "Hide teams" : "Teams"}
           </button>
         ) : null}
-        <div className="xl:min-h-0 xl:flex-1 xl:overflow-y-auto xl:[scrollbar-width:none] xl:[&::-webkit-scrollbar]:hidden">{children}</div>
+        {children}
       </div>
     </div>
   );
@@ -39,8 +34,8 @@ export function PicksFrame({ teams, children }: { teams: StageRosterTeam[]; chil
 
 function RosterGrid({ teams }: { teams: StageRosterTeam[] }) {
   return (
-    <div className="xl:flex xl:h-full xl:flex-col xl:pb-2">
-      <div className="grid grid-cols-2 gap-0.5 xl:min-h-0 xl:flex-1 xl:content-between">
+    <div>
+      <div className="grid grid-cols-2 content-start gap-1">
         {teams.map((team) => (
           <TeamCard key={team.teamId} team={team} />
         ))}

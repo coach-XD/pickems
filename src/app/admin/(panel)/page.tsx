@@ -54,7 +54,7 @@ export default async function AdminHome({
                   <LocalTime iso={stage.startsAt.toISOString()} />
                 </p>
                 <p className="mt-1 text-xs text-zinc-500">
-                  {stage.teamCount} teams · {stage.playedCount}/{stage.matchCount} results
+                  {stage.teamCount} teams · {stage.playedCount}/{stage.matchCount} results · {stage.picksOpen ? "Picks open" : "Picks locked"}
                 </p>
               </div>
               <Link href={`/admin/stages/${stage.id}`} className="text-sm font-semibold text-amber-300">

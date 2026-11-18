@@ -5,6 +5,7 @@ import { resolveLogo } from "@/lib/logos";
 import { saveBracket } from "@/app/actions/picks";
 import { derivedPlacements, picksFromBracket, projectBracket, type BracketPick, type RealSeries } from "@/lib/bracket";
 import { pairKey } from "@/lib/swiss";
+import { ResetControl, SaveStatus } from "@/components/SaveState";
 import { cx } from "@/lib/ui";
 
 type SimTeam = {
@@ -34,7 +35,8 @@ export function SwissSimulator({
 }) {
   const [picks, setPicks] = useState(initialPicks);
   const [lines, setLines] = useState<Line[]>([]);
-  const [, startTransition] = useTransition();
+  const [failed, setFailed] = useState(false);
+  const [pending, startTransition] = useTransition();
   const boardRef = useRef<HTMLDivElement>(null);
   const teamById = useMemo(() => new Map(teams.map((team) => [team.teamId, team])), [teams]);
   const matches = useMemo(
@@ -52,8 +54,10 @@ export function SwissSimulator({
     const clean = picksFromBracket(projectBracket({ teams, round1, picks: next }));
     setPicks(clean);
     if (locked) return;
+    setFailed(false);
     startTransition(async () => {
-      await saveBracket(stageId, clean);
+      const saved = await saveBracket(stageId, clean);
+      setFailed(!saved?.ok);
     });
   }
 
@@ -134,24 +138,20 @@ export function SwissSimulator({
   }, {});
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap gap-2 text-xs">
+        <div className="flex flex-wrap gap-1.5 text-[11px]">
           <SlateChip label="3-0" value={finished.perfect?.join(", ")} />
           <SlateChip label="0-3" value={finished.winless?.join(", ")} />
           <SlateChip label="Advance" value={finished.advance?.join(", ")} />
         </div>
-        <button
-          type="button"
-          disabled={locked || picks.length === 0}
-          onClick={() => commit([])}
-          className="h-9 rounded-lg border border-white/15 px-3 text-xs font-semibold text-zinc-200 disabled:opacity-40"
-        >
-          Reset
-        </button>
+        <div className="flex items-center gap-3">
+          <SaveStatus locked={locked} pending={pending} failed={failed} />
+          <ResetControl disabled={locked || picks.length === 0} label="Reset" onReset={() => commit([])} />
+        </div>
       </div>
-      <div className="overflow-x-auto pb-2 xl:overflow-x-hidden">
-        <div ref={boardRef} className="relative flex min-w-max gap-2 px-1 min-[1560px]:gap-3 xl:min-w-0 xl:w-full xl:justify-between">
+      <div className="overflow-x-auto pb-1">
+        <div ref={boardRef} className="relative flex w-max min-w-full gap-1.5 px-0.5">
           <svg className="pointer-events-none absolute inset-0 h-full w-full">
             {lines.map((line, index) => (
               <path
@@ -159,7 +159,8 @@ export function SwissSimulator({
                 d={`M ${line.x1} ${line.y1} C ${(line.x1 + line.x2) / 2} ${line.y1}, ${(line.x1 + line.x2) / 2} ${line.y2}, ${line.x2} ${line.y2}`}
                 fill="none"
                 stroke={line.win ? "#3ee0b0" : "#ff5d73"}
-                strokeWidth="2"
+                strokeOpacity={line.win ? 0.85 : 0.35}
+                strokeWidth="1.5"
               />
             ))}
           </svg>
@@ -171,21 +172,17 @@ export function SwissSimulator({
               return bw - aw || al - bl;
             });
             return (
-              <section key={round} className="relative z-10 w-[8.25rem] shrink-0 space-y-2 min-[1560px]:w-40 min-[1560px]:space-y-3">
+              <section key={round} className="relative z-10 w-[7.25rem] shrink-0 space-y-1">
                 <div className="flex items-center justify-between gap-2">
-                  <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-400">Round {round}</h2>
-                  <button
-                    type="button"
+                  <h2 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400">Round {round}</h2>
+                  <ResetControl
                     disabled={locked || !picks.some((pick) => pick.round >= round)}
-                    onClick={() => commit(picks.filter((pick) => pick.round < round))}
-                    className="text-[11px] font-semibold text-zinc-400 disabled:opacity-40"
-                  >
-                    Reset
-                  </button>
+                    onReset={() => commit(picks.filter((pick) => pick.round < round))}
+                  />
                 </div>
                 {records.map((record) => (
-                  <div key={record} className="space-y-2">
-                    <p className="text-[11px] font-semibold text-zinc-500">{record}</p>
+                  <div key={record} className="space-y-1">
+                    <p className="text-[10px] font-semibold text-zinc-500">{record}</p>
                     {inRound
                       .filter((match) => `${match.wins}-${match.losses}` === record)
                       .map((match) => {
@@ -204,7 +201,7 @@ export function SwissSimulator({
                           <article
                             key={`${match.round}-${match.teamAId}-${match.teamBId}`}
                             className={cx(
-                              "rounded-2xl border bg-[#1a2230] p-2",
+                              "rounded-lg border bg-[#1a2230] p-1 transition-colors duration-150",
                               verdict === "correct" && "border-emerald-400 bg-emerald-400/10",
                               verdict === "wrong" && "border-rose-400 bg-rose-500/10",
                               !verdict && "border-white/10",
@@ -230,7 +227,7 @@ export function SwissSimulator({
                               />
                             </div>
                             {match.format === "bo3" && match.winnerId ? (
-                              <div className="mt-2 grid grid-cols-2 gap-1">
+                              <div className="mt-1 grid grid-cols-2 gap-0.5">
                                 {(["2-0", "2-1"] as const).map((option) => (
                                   <button
                                     key={option}
@@ -238,7 +235,7 @@ export function SwissSimulator({
                                     disabled={locked}
                                     onClick={() => chooseMargin(match, option)}
                                     className={cx(
-                                      "h-7 rounded-md text-[11px] font-semibold",
+                                      "h-5 rounded text-[10px] font-semibold",
                                       margin === option ? "bg-amber-400 text-zinc-950" : "bg-white/5 text-zinc-300",
                                     )}
                                   >
@@ -323,21 +320,21 @@ function ResultColumn({
   const blocks = [...groups, ...extra].filter(([, ids]) => ids.length > 0);
   if (blocks.length === 0) return null;
   return (
-    <section className="relative z-10 w-[8.25rem] shrink-0 space-y-2 min-[1560px]:w-40 min-[1560px]:space-y-3">
-      <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-400">{title}</h2>
+    <section className="relative z-10 w-[7.25rem] shrink-0 space-y-1">
+      <h2 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400">{title}</h2>
       {blocks.map(([label, ids]) => (
         <div
           key={label}
           className={cx(
-            "rounded-2xl border p-2",
+            "rounded-lg border p-1",
             tone === "green" && label !== "3-1 / 3-2" && "border-emerald-400/50 bg-emerald-500/20",
             tone === "green" && label === "3-1 / 3-2" && "border-emerald-700/60 bg-emerald-900/50",
             tone === "red" && label === "0-3" && "border-rose-400/60 bg-rose-600/25",
             tone === "red" && label !== "0-3" && "border-rose-900/70 bg-rose-950/70",
           )}
         >
-          <p className="mb-2 text-center text-[11px] font-semibold">{label}</p>
-          <div className="flex flex-wrap justify-center gap-2">
+          <p className="mb-1 text-center text-[10px] font-semibold">{label}</p>
+          <div className="flex flex-wrap justify-center gap-1">
             {ids.map((teamId) => (
               <Spot key={teamId} team={teamById.get(teamId)!} step={step} result="" selected={false} disabled />
             ))}
@@ -375,11 +372,11 @@ function Spot({
       data-step={step}
       data-result={result}
       title={`${team.name} · seed ${team.seed}`}
-      className="flex w-12 flex-col items-center gap-1 disabled:cursor-default"
+      className="flex w-9 flex-col items-center gap-0.5 disabled:cursor-default"
     >
       <span
         className={cx(
-          "grid h-11 w-11 place-items-center overflow-hidden rounded-xl bg-zinc-800 p-0.5 text-[10px] font-bold text-zinc-100",
+          "grid h-8 w-8 place-items-center overflow-hidden rounded-lg bg-zinc-800 p-0.5 text-[9px] font-bold text-zinc-100 transition-shadow duration-150",
           selected && "ring-2 ring-emerald-300",
         )}
       >
@@ -390,7 +387,7 @@ function Spot({
           team.shortName.slice(0, 3).toUpperCase()
         )}
       </span>
-      <span className="max-w-12 truncate text-[10px] text-zinc-300">{team.shortName}</span>
+      <span className="max-w-9 truncate text-[9px] leading-none text-zinc-300">{team.shortName}</span>
     </button>
   );
 }

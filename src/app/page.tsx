@@ -21,7 +21,8 @@ export default async function Home({
   const includeDemo = allowDemoData() && (player.isDemo || (await demoCookieOn()));
   const [stages, demoExists] = await Promise.all([listStages(includeDemo), hasDemoStage()]);
   const realStages = stages.filter((stage) => !stage.isDemo);
-  const requested = query.view ?? (player.isDemo ? "demo-stage" : "overall");
+  const openStage = realStages.find((stage) => stage.picksOpen);
+  const requested = query.view ?? (player.isDemo ? "demo-stage" : openStage?.slug ?? "overall");
   const selected = requested === "overall" ? null : (stages.find((stage) => stage.slug === requested) ?? null);
   const stageIds = selected ? [selected.id] : realStages.map((stage) => stage.id);
   const board = await getLeaderboard(stageIds, Boolean(selected?.isDemo));
@@ -31,7 +32,7 @@ export default async function Home({
     { href: "/?view=overall", label: "Overall", active: !selected },
     ...stages.map((stage) => ({
       href: `/?view=${stage.slug}`,
-      label: stage.name,
+      label: stage.picksOpen ? stage.name : `${stage.name} · locked`,
       active: selected?.id === stage.id,
     })),
   ];
@@ -42,9 +43,10 @@ export default async function Home({
         <Flash error={query.error} notice={query.notice} />
         <div className="flex items-end justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight">Board</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Board</h1>
             <p className="mt-1 text-sm text-zinc-400">
               {selected ? selected.name : "Every real stage, added together."}
+              {selected && !selected.picksOpen ? " · picks locked" : ""}
             </p>
           </div>
           {!player.isDemo && demoExists ? (

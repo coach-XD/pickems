@@ -53,11 +53,11 @@ export default async function PicksPage({
 
   return (
     <PicksFrame teams={roster}>
-    <div className="space-y-3">
+    <div className="space-y-2">
       <Flash error={query.error} notice={query.notice} />
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">My picks</h1>
-        <p className="mt-1 text-sm text-zinc-400">
+        <h1 className="text-lg font-semibold tracking-tight">My picks</h1>
+        <p className="text-xs text-zinc-400">
           Bracket <Countdown lockIso={lockInstant(firstStart).toISOString()} />
         </p>
       </div>
@@ -136,7 +136,7 @@ function StageTabs({
           key={item.id}
           href={`/picks?stage=${item.slug}`}
           className={cx(
-            "shrink-0 rounded-full border px-3 py-1.5 text-sm font-semibold",
+            "shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold",
             item.id === currentId ? "border-amber-400/70 bg-amber-400 text-zinc-950" : "border-white/10 text-zinc-300",
           )}
         >

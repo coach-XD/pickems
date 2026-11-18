@@ -5,6 +5,7 @@ import { saveBracket } from "@/app/actions/picks";
 import { resolveLogo } from "@/lib/logos";
 import { picksFromPlayoff, projectPlayoff, type PlayoffPick } from "@/lib/playoff";
 import { pairKey } from "@/lib/swiss";
+import { ResetControl, SaveStatus } from "@/components/SaveState";
 import { cx } from "@/lib/ui";
 
 type Side = {
@@ -29,7 +30,8 @@ export function PlayoffBracket({
   finalFormat: "bo3" | "bo5";
 }) {
   const [picks, setPicks] = useState(initialPicks);
-  const [, startTransition] = useTransition();
+  const [failed, setFailed] = useState(false);
+  const [pending, startTransition] = useTransition();
   const board = projectPlayoff({ teams, picks, finalFormat });
   const byId = new Map(teams.map((team) => [team.teamId, team]));
 
@@ -37,8 +39,10 @@ export function PlayoffBracket({
     const clean = picksFromPlayoff(projectPlayoff({ teams, picks: next, finalFormat }).matches);
     setPicks(clean);
     if (locked) return;
+    setFailed(false);
     startTransition(async () => {
-      await saveBracket(stageId, clean);
+      const saved = await saveBracket(stageId, clean);
+      setFailed(!saved?.ok);
     });
   }
 
@@ -62,14 +66,10 @@ export function PlayoffBracket({
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm text-zinc-400">Quarterfinals and semifinals are Bo3. The final is {finalFormat === "bo5" ? "Bo5" : "Bo3"}.</p>
-        <button
-          type="button"
-          disabled={locked || picks.length === 0}
-          onClick={() => commit([])}
-          className="h-9 rounded-lg border border-white/15 px-3 text-xs font-semibold text-zinc-200 disabled:opacity-40"
-        >
-          Reset
-        </button>
+        <div className="flex items-center gap-3">
+          <SaveStatus locked={locked} pending={pending} failed={failed} />
+          <ResetControl disabled={locked || picks.length === 0} onReset={() => commit([])} />
+        </div>
       </div>
       <div className="overflow-x-auto pb-2">
         <div className="flex min-w-max gap-6">

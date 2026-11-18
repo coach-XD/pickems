@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import {
   addMatch,
   addTeam,
+  attachTeam,
   createSuggestedRound,
   deleteMatch,
   removeTeam,
@@ -17,7 +18,8 @@ import { Flash } from "@/components/Flash";
 import { LocalTime } from "@/components/LocalTime";
 import { SubmitButton } from "@/components/SubmitButton";
 import { UtcDateTimeField } from "@/components/UtcDateTimeField";
-import { getStageById, stageBundle, type StageTeamView } from "@/lib/queries";
+import { LogoField } from "@/components/LogoField";
+import { getStageById, listTeamsOutsideStage, stageBundle, type StageTeamView } from "@/lib/queries";
 import { pairNextRound } from "@/lib/valveSwiss";
 import { staggerFrom } from "@/lib/time";
 import { btnDanger, btnGhost, btnPrimary, cardClass, inputClass, labelClass, selectClass } from "@/lib/ui";
@@ -36,6 +38,7 @@ export default async function EditStagePage({
   const stage = await getStageById(id);
   if (!stage) notFound();
   const bundle = await stageBundle(stage.id);
+  const outside = await listTeamsOutsideStage(stage.id);
   const latestRound = bundle.matches.reduce((max, match) => Math.max(max, match.round), 0);
   const latestOpen = bundle.matches.some((match) => match.round === latestRound && !match.winnerId);
   const active = bundle.standings.filter((row) => row.status === "active");
@@ -60,9 +63,12 @@ export default async function EditStagePage({
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-semibold">{stage.name}</h1>
-        <p className="mt-1 text-sm text-zinc-400">
-          The whole bracket locks one hour before the first Round 1 match. Suggested rounds use the Valve Swiss pairing rules. You still confirm them.
-        </p>
+        <ol className="mt-2 list-decimal space-y-1 pl-4 text-sm text-zinc-400">
+          <li>Add teams and seeds. Reuse a team from an earlier stage, or add a new one.</li>
+          <li>Edit nicknames and ratings on Rosters.</li>
+          <li>The bracket locks one hour before the first Round 1 match. Set that time on the match.</li>
+          <li>Open for picks when the slate is ready. Enter the winner and map score after each series.</li>
+        </ol>
       </div>
       <Flash error={query.error} notice={query.notice} />
 
@@ -152,10 +158,9 @@ export default async function EditStagePage({
                   <span className={labelClass}>Other</span>
                   <input name={`other_${team.stageTeamId}`} form="save-teams" defaultValue={team.otherRank ?? ""} className={inputClass} />
                 </label>
-                <label className="col-span-2 block">
-                  <span className={labelClass}>Logo URL</span>
-                  <input name={`logo_${team.stageTeamId}`} form="save-teams" defaultValue={team.logoUrl ?? ""} placeholder="https://" className={inputClass} />
-                </label>
+                <div className="col-span-2">
+                  <LogoField form="save-teams" name={`logo_${team.stageTeamId}`} defaultValue={team.storedLogoUrl ?? ""} />
+                </div>
               </div>
               <ConfirmForm action={removeTeam} message={`Remove ${team.name} from this stage?`}>
                 <input type="hidden" name="stageId" value={stage.id} />
@@ -172,8 +177,40 @@ export default async function EditStagePage({
           <SubmitButton className={btnPrimary}>Save teams</SubmitButton>
         </form>
 
+        {outside.length > 0 ? (
+          <form action={attachTeam} className={`${cardClass} space-y-3 p-4`}>
+            <h3 className="font-semibold">Add a team from another stage</h3>
+            <input type="hidden" name="stageId" value={stage.id} />
+            <label className="block">
+              <span className={labelClass}>Team</span>
+              <select name="teamId" required className={selectClass}>
+                {outside.map((team) => (
+                  <option key={team.id} value={team.id}>
+                    {team.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              <label className="block">
+                <span className={labelClass}>Seed</span>
+                <input name="seed" required className={inputClass} />
+              </label>
+              <label className="block">
+                <span className={labelClass}>World</span>
+                <input name="world" className={inputClass} />
+              </label>
+              <label className="block">
+                <span className={labelClass}>Other</span>
+                <input name="other" className={inputClass} />
+              </label>
+            </div>
+            <SubmitButton className={btnGhost}>Add existing team</SubmitButton>
+          </form>
+        ) : null}
+
         <form action={addTeam} className={`${cardClass} space-y-3 p-4`}>
-          <h3 className="font-semibold">Add a team</h3>
+          <h3 className="font-semibold">Add a new team</h3>
           <input type="hidden" name="stageId" value={stage.id} />
           <div className="grid grid-cols-2 gap-2">
             <label className="col-span-2 block">
@@ -200,10 +237,9 @@ export default async function EditStagePage({
               <span className={labelClass}>Other</span>
               <input name="other" className={inputClass} />
             </label>
-            <label className="col-span-2 block">
-              <span className={labelClass}>Logo URL</span>
-              <input name="logo" placeholder="https://" className={inputClass} />
-            </label>
+            <div className="col-span-2">
+              <LogoField name="logo" />
+            </div>
           </div>
           <SubmitButton className={btnGhost}>Add team</SubmitButton>
         </form>

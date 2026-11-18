@@ -235,6 +235,44 @@ export async function addTeam(formData: FormData) {
   redirect(`${back}?notice=saved`);
 }
 
+export async function attachTeam(formData: FormData) {
+  await gate();
+  const stageId = String(formData.get("stageId") ?? "");
+  const back = `/admin/stages/${stageId}`;
+  const teamId = String(formData.get("teamId") ?? "");
+  const seed = optionalInt(formData.get("seed"));
+  const worldRank = optionalInt(formData.get("world"));
+  const otherRank = optionalInt(formData.get("other"));
+  if (!teamId) bounce(back, "team-missing");
+  if (seed == null || Number.isNaN(seed) || seed < 1 || seed > 32) bounce(back, "seed-range");
+  if (Number.isNaN(worldRank) || Number.isNaN(otherRank)) bounce(back, "team-fields");
+  const db = getDb();
+  const [stage] = await db.select().from(stages).where(eq(stages.id, stageId)).limit(1);
+  if (!stage) bounce("/admin", "not-found");
+  const [team] = await db.select({ id: teams.id }).from(teams).where(eq(teams.id, teamId)).limit(1);
+  if (!team) bounce(back, "team-missing");
+  const [already] = await db
+    .select({ id: stageTeams.id })
+    .from(stageTeams)
+    .where(and(eq(stageTeams.stageId, stageId), eq(stageTeams.teamId, teamId)))
+    .limit(1);
+  if (already) bounce(back, "team-in");
+  try {
+    await db.insert(stageTeams).values({
+      stageId,
+      teamId,
+      seed,
+      worldRank: worldRank ?? null,
+      otherRank: otherRank ?? null,
+    });
+  } catch (error) {
+    if (isUniqueViolation(error)) bounce(back, "seed-dup");
+    throw error;
+  }
+  refresh(stage.slug);
+  redirect(`${back}?notice=saved#teams`);
+}
+
 export async function removeTeam(formData: FormData) {
   await gate();
   const stageId = String(formData.get("stageId") ?? "");

@@ -23,6 +23,7 @@ export type StageTeamView = {
   seed: number;
   worldRank: number | null;
   otherRank: number | null;
+  storedLogoUrl?: string | null;
 };
 
 export type MatchView = {
@@ -82,7 +83,7 @@ export async function listStageTeams(stageId: string): Promise<StageTeamView[]> 
     .innerJoin(teams, eq(teams.id, stageTeams.teamId))
     .where(eq(stageTeams.stageId, stageId))
     .orderBy(asc(stageTeams.seed));
-  return rows.map((team) => withLogo(team));
+  return rows.map((team) => ({ ...withLogo(team), storedLogoUrl: team.logoUrl }));
 }
 
 export type RosterPlayerView = {
@@ -358,6 +359,17 @@ export async function allPicksForStage(stageId: string, matchIds: string[]) {
   const slots = await db.select().from(placementPicks).where(eq(placementPicks.stageId, stageId));
   const series = matchIds.length ? await db.select().from(matchPicks).where(inArray(matchPicks.matchId, matchIds)) : [];
   return { slots, series };
+}
+
+export async function listTeamsOutsideStage(stageId: string) {
+  const db = getDb();
+  const all = await db
+    .select({ id: teams.id, name: teams.name, shortName: teams.shortName })
+    .from(teams)
+    .orderBy(asc(teams.name));
+  const inside = await db.select({ teamId: stageTeams.teamId }).from(stageTeams).where(eq(stageTeams.stageId, stageId));
+  const taken = new Set(inside.map((row) => row.teamId));
+  return all.filter((team) => !taken.has(team.id));
 }
 
 export async function adminStageSummaries() {
