@@ -96,8 +96,9 @@ export async function updateStage(formData: FormData) {
   const [stage] = await db.select().from(stages).where(eq(stages.id, id)).limit(1);
   if (!stage) bounce("/admin", "not-found");
   const picksOpen = String(formData.get("picksOpen") ?? "0") === "1";
+  const showPicksBeforeLock = String(formData.get("showPicksBeforeLock") ?? "0") === "1";
   const finalFormat = String(formData.get("finalFormat") ?? stage.finalFormat) === "bo5" ? "bo5" : "bo3";
-  await db.update(stages).set({ name, startsAt, endsAt, sortOrder, picksOpen, finalFormat }).where(eq(stages.id, id));
+  await db.update(stages).set({ name, startsAt, endsAt, sortOrder, picksOpen, showPicksBeforeLock, finalFormat }).where(eq(stages.id, id));
   refresh(stage.slug);
   redirect(`${back}?notice=saved`);
 }

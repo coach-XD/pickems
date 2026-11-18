@@ -1,0 +1,1 @@
+ALTER TABLE "stages" ADD COLUMN "show_picks_before_lock" boolean DEFAULT false NOT NULL;

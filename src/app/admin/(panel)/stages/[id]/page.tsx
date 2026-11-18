@@ -97,6 +97,13 @@ export default async function EditStagePage({
             <option value="1">Open for picks</option>
           </select>
         </label>
+        <label className="block">
+          <span className={labelClass}>Show picks before lock</span>
+          <select name="showPicksBeforeLock" defaultValue={stage.showPicksBeforeLock ? "1" : "0"} className={selectClass}>
+            <option value="0">Hidden until lock</option>
+            <option value="1">Visible to everyone</option>
+          </select>
+        </label>
         {stage.kind === "playoff" ? (
           <label className="block">
             <span className={labelClass}>Final</span>
@@ -125,7 +132,7 @@ export default async function EditStagePage({
             </Link>
           </p>
           <p className="mt-1 text-sm text-zinc-400">
-            Seed is the opening Swiss seed. World rank is the left badge. Other rank is the orange badge. Names and logos are shared if the team appears in another stage. Paste an https logo URL, or leave it blank for an initials badge.
+            Seed is the opening Swiss seed. VRS is the global rank shown next to the seed. Other rank is the orange badge. Names and logos are shared if the team appears in another stage. Paste an https logo URL, or leave it blank for an initials badge.
           </p>
         </div>
         <div className="space-y-3">
@@ -151,7 +158,7 @@ export default async function EditStagePage({
                   <input name={`seed_${team.stageTeamId}`} form="save-teams" defaultValue={team.seed} className={inputClass} />
                 </label>
                 <label className="block">
-                  <span className={labelClass}>World</span>
+                  <span className={labelClass}>VRS</span>
                   <input name={`world_${team.stageTeamId}`} form="save-teams" defaultValue={team.worldRank ?? ""} className={inputClass} />
                 </label>
                 <label className="block">
@@ -204,7 +211,7 @@ export default async function EditStagePage({
               <input name="seed" required className={inputClass} />
             </label>
             <label className="block">
-              <span className={labelClass}>World</span>
+              <span className={labelClass}>VRS</span>
               <input name="world" className={inputClass} />
             </label>
             <label className="block">

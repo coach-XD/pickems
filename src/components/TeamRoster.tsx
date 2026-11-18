@@ -49,8 +49,8 @@ function TeamCard({ team }: { team: StageRosterTeam }) {
   const logo = resolveLogo(team);
   return (
     <article className="rounded-md border border-white/10 bg-zinc-900/80 px-1.5 py-0.5">
-      <div className="flex items-center gap-1">
-        <span className="grid h-5 w-5 shrink-0 place-items-center overflow-hidden rounded bg-zinc-800">
+      <div className="flex items-start gap-1">
+        <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center overflow-hidden rounded bg-zinc-800">
           {logo ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={logo} alt="" className="h-full w-full object-contain" />
@@ -58,10 +58,15 @@ function TeamCard({ team }: { team: StageRosterTeam }) {
             <span className="text-[8px] font-bold text-zinc-300">{team.shortName.slice(0, 2)}</span>
           )}
         </span>
-        <p className="min-w-0 flex-1 truncate text-xs font-semibold leading-none text-white" title={team.name}>
-          {team.name}
-        </p>
-        <p className="shrink-0 text-xs font-semibold leading-none text-white">#{team.seed}</p>
+        <div className="min-w-0 flex-1">
+          <p className="text-[12px] font-semibold leading-tight text-white" title={team.name}>
+            {team.name}
+          </p>
+          <p className="text-[10px] font-semibold leading-tight text-white">
+            #{team.seed}
+            {team.worldRank != null ? <span className="ml-1 font-medium text-zinc-400">VRS #{team.worldRank}</span> : null}
+          </p>
+        </div>
       </div>
       <ul className="mt-0.5">
         {team.players.map((player) => (

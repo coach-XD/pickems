@@ -9,6 +9,7 @@ import { cx } from "@/lib/ui";
 const links = [
   { href: "/", label: "Board", match: (path: string) => path === "/" },
   { href: "/picks", label: "Picks", match: (path: string) => path.startsWith("/picks") },
+  { href: "/players", label: "Players", match: (path: string) => path.startsWith("/players") },
   { href: "/stages", label: "Stages", match: (path: string) => path.startsWith("/stages") },
 ];
 
@@ -20,7 +21,7 @@ export function AppShell({
   children: ReactNode;
 }) {
   const pathname = usePathname();
-  const wide = pathname.startsWith("/picks");
+  const wide = pathname.startsWith("/picks") || pathname.startsWith("/players/");
   const width = wide ? "max-w-[1920px]" : "max-w-3xl";
   return (
     <div className="min-h-full">

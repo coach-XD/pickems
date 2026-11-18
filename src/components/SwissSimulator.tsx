@@ -14,11 +14,13 @@ type SimTeam = {
   shortName: string;
   logoUrl: string | null;
   seed: number;
+  worldRank?: number | null;
 };
 
 export function SwissSimulator({
   stageId,
   locked,
+  readOnly = false,
   teams,
   round1,
   initialPicks,
@@ -26,6 +28,7 @@ export function SwissSimulator({
 }: {
   stageId: string;
   locked: boolean;
+  readOnly?: boolean;
   teams: SimTeam[];
   round1: Array<{ teamAId: string; teamBId: string }>;
   initialPicks: BracketPick[];
@@ -46,10 +49,12 @@ export function SwissSimulator({
     return map;
   }, [realMatches]);
 
+  const frozen = locked || readOnly;
+
   function commit(next: BracketPick[]) {
     const clean = picksFromBracket(projectBracket({ teams, round1, picks: next }));
     setPicks(clean);
-    if (locked) return;
+    if (frozen) return;
     setFailed(false);
     startTransition(async () => {
       const saved = await saveBracket(stageId, clean);
@@ -58,7 +63,7 @@ export function SwissSimulator({
   }
 
   function chooseWinner(match: (typeof matches)[number], teamId: string) {
-    if (locked) return;
+    if (frozen) return;
     const key = pairKey(match.teamAId, match.teamBId);
     const kept = picks.filter((pick) => pick.round < match.round || (pick.round === match.round && pairKey(pick.teamAId, pick.teamBId) !== key));
     commit([
@@ -68,7 +73,7 @@ export function SwissSimulator({
   }
 
   function chooseMargin(match: (typeof matches)[number], margin: "2-0" | "2-1") {
-    if (locked || !match.winnerId) return;
+    if (frozen || !match.winnerId) return;
     const key = pairKey(match.teamAId, match.teamBId);
     const loser = margin === "2-0" ? 0 : 1;
     const winnerIsA = match.winnerId === match.teamAId;
@@ -96,10 +101,14 @@ export function SwissSimulator({
           <SlateChip label="0-3" value={finished.winless?.join(", ")} />
           <SlateChip label="Advance" value={finished.advance?.join(", ")} />
         </div>
-        <div className="flex items-center gap-3">
-          <SaveStatus locked={locked} pending={pending} failed={failed} />
-          <ResetControl disabled={locked || picks.length === 0} label="Reset bracket" onReset={() => commit([])} />
-        </div>
+        {readOnly ? (
+          <span className="text-[11px] font-semibold text-zinc-500">View only</span>
+        ) : (
+          <div className="flex items-center gap-3">
+            <SaveStatus locked={locked} pending={pending} failed={failed} />
+            <ResetControl disabled={locked || picks.length === 0} label="Reset bracket" onReset={() => commit([])} />
+          </div>
+        )}
       </div>
       <div className="min-w-0 overflow-x-auto pb-1">
         <div className="flex w-max gap-2 pr-2">
@@ -114,16 +123,18 @@ export function SwissSimulator({
               <section key={round} className="w-[10.25rem] shrink-0 space-y-1 overflow-hidden xl:w-[12rem]">
                 <div className="flex items-center justify-between gap-1">
                   <h2 className="truncate text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-400 xl:text-xs">Round {round}</h2>
+                  {readOnly ? null : (
                   <button
                     type="button"
                     title="Reset this round"
                     aria-label={`Reset round ${round}`}
-                    disabled={locked || !picks.some((pick) => pick.round >= round)}
+                    disabled={frozen || !picks.some((pick) => pick.round >= round)}
                     onClick={() => commit(picks.filter((pick) => pick.round < round))}
                     className="grid h-5 w-5 shrink-0 place-items-center rounded text-zinc-500 hover:bg-white/10 hover:text-zinc-100 disabled:opacity-30"
                   >
                     <ResetIcon />
                   </button>
+                  )}
                 </div>
                 {records.map((record) => (
                   <div key={record} className="space-y-0.5">
@@ -133,7 +144,7 @@ export function SwissSimulator({
                       .map((match) => {
                         const real = realByPair.get(pairKey(match.teamAId, match.teamBId));
                         const verdict =
-                          locked && match.winnerId && real?.winnerId
+                          frozen && match.winnerId && real?.winnerId
                             ? real.winnerId === match.winnerId
                               ? "correct"
                               : "wrong"
@@ -156,14 +167,14 @@ export function SwissSimulator({
                               <Spot
                                 team={teamById.get(match.teamAId)!}
                                 selected={match.winnerId === match.teamAId}
-                                disabled={locked}
+                                disabled={frozen}
                                 onClick={() => chooseWinner(match, match.teamAId)}
                               />
                               <span className="text-[10px] text-zinc-500">{match.format === "bo3" ? "Bo3" : "vs"}</span>
                               <Spot
                                 team={teamById.get(match.teamBId)!}
                                 selected={match.winnerId === match.teamBId}
-                                disabled={locked}
+                                disabled={frozen}
                                 onClick={() => chooseWinner(match, match.teamBId)}
                               />
                             </div>
@@ -173,7 +184,7 @@ export function SwissSimulator({
                                   <button
                                     key={option}
                                     type="button"
-                                    disabled={locked}
+                                    disabled={frozen}
                                     onClick={() => chooseMargin(match, option)}
                                     className={cx(
                                       "h-5 rounded text-[11px] font-semibold",
@@ -318,7 +329,7 @@ function Spot({
       type="button"
       disabled={disabled || !onClick}
       onClick={onClick}
-      title={`${team.name} · seed ${team.seed}`}
+      title={`${team.name} · seed ${team.seed}${team.worldRank != null ? ` · VRS #${team.worldRank}` : ""}`}
       className="flex min-w-0 flex-1 flex-col items-center gap-1 disabled:cursor-default"
     >
       <span
