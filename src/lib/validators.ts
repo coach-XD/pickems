@@ -11,11 +11,16 @@ export const displayNameSchema = z
 
 export const pinSchema = z.string().regex(/^\d{4,8}$/, "PIN must be 4–8 digits.");
 
+const DATA_LOGO = /^data:image\/(?:png|webp|jpeg);base64,[a-z0-9+/=\s]+$/i;
+
 export const logoUrlSchema = z
   .string()
   .trim()
-  .max(500)
-  .refine((value) => value === "" || /^https:\/\/\S+$/i.test(value), "Logo URL must start with https://")
+  .max(120_000)
+  .refine(
+    (value) => value === "" || /^https:\/\/\S+$/i.test(value) || DATA_LOGO.test(value),
+    "Use an https logo URL or a PNG, WebP, or JPEG upload.",
+  )
   .transform((value) => (value === "" ? null : value));
 
 export function slugify(input: string): string {

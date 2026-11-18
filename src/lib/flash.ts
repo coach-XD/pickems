@@ -27,6 +27,7 @@ export const FLASH: Record<string, string> = {
   "match-time": "Enter a valid match time.",
   "not-found": "That could not be found.",
   "roster-fields": "Check the nicknames and ratings. A rating can be blank or a number with up to two decimals.",
+  "team-in": "That team is already in this stage.",
 };
 
 export function flashMessage(code: string | undefined): string | null {

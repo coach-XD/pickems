@@ -27,10 +27,51 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+const scrollbarCss = `
+html {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(244, 244, 245, 0.28) transparent;
+}
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: rgba(244, 244, 245, 0.28);
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(244, 244, 245, 0.48);
+}
+*::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="min-h-full">{children}</body>
+      <body className="min-h-full">
+        <style dangerouslySetInnerHTML={{ __html: scrollbarCss }} />
+        {children}
+      </body>
     </html>
   );
 }

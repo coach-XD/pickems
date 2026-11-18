@@ -23,6 +23,7 @@ export type StageTeamView = {
   seed: number;
   worldRank: number | null;
   otherRank: number | null;
+  storedLogoUrl?: string | null;
 };
 
 export type MatchView = {
@@ -82,7 +83,7 @@ export async function listStageTeams(stageId: string): Promise<StageTeamView[]> 
     .innerJoin(teams, eq(teams.id, stageTeams.teamId))
     .where(eq(stageTeams.stageId, stageId))
     .orderBy(asc(stageTeams.seed));
-  return rows.map((team) => withLogo(team));
+  return rows.map((team) => ({ ...withLogo(team), storedLogoUrl: team.logoUrl }));
 }
 
 export type RosterPlayerView = {
@@ -358,6 +359,51 @@ export async function allPicksForStage(stageId: string, matchIds: string[]) {
   const slots = await db.select().from(placementPicks).where(eq(placementPicks.stageId, stageId));
   const series = matchIds.length ? await db.select().from(matchPicks).where(inArray(matchPicks.matchId, matchIds)) : [];
   return { slots, series };
+}
+
+export async function listTeamsOutsideStage(stageId: string) {
+  const db = getDb();
+  const [current] = await db.select({ sortOrder: stages.sortOrder }).from(stages).where(eq(stages.id, stageId)).limit(1);
+  const currentOrder = current?.sortOrder ?? 0;
+  const rows = await db
+    .select({
+      id: teams.id,
+      name: teams.name,
+      shortName: teams.shortName,
+      seed: stageTeams.seed,
+      sortOrder: stages.sortOrder,
+      linkStageId: stageTeams.stageId,
+    })
+    .from(teams)
+    .leftJoin(stageTeams, eq(stageTeams.teamId, teams.id))
+    .leftJoin(stages, eq(stages.id, stageTeams.stageId));
+
+  const grouped = new Map<string, { id: string; name: string; shortName: string; seed: number | null; previousOrder: number; inThis: boolean }>();
+  for (const row of rows) {
+    const inThis = row.linkStageId === stageId;
+    const existing = grouped.get(row.id);
+    if (!existing) {
+      grouped.set(row.id, {
+        id: row.id,
+        name: row.name,
+        shortName: row.shortName,
+        seed: inThis ? null : row.seed,
+        previousOrder: inThis ? -1 : (row.sortOrder ?? -1),
+        inThis,
+      });
+      continue;
+    }
+    if (inThis) existing.inThis = true;
+    else if (row.sortOrder != null && row.sortOrder < currentOrder && row.sortOrder >= existing.previousOrder) {
+      existing.seed = row.seed;
+      existing.previousOrder = row.sortOrder;
+    }
+  }
+
+  return [...grouped.values()]
+    .filter((team) => !team.inThis)
+    .sort((a, b) => (a.seed ?? 999) - (b.seed ?? 999) || a.name.localeCompare(b.name))
+    .map(({ id, name, shortName, seed }) => ({ id, name, shortName, seed }));
 }
 
 export async function adminStageSummaries() {
