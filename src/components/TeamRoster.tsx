@@ -61,7 +61,10 @@ function TeamCard({ team }: { team: StageRosterTeam }) {
         <p className="min-w-0 flex-1 truncate text-xs font-semibold leading-none text-white" title={team.name}>
           {team.name}
         </p>
-        <p className="shrink-0 text-xs font-semibold leading-none text-white">#{team.seed}</p>
+        <p className="shrink-0 text-right text-[11px] font-semibold leading-tight text-white">
+          #{team.seed}
+          {team.worldRank != null ? <span className="block font-medium text-zinc-400">VRS #{team.worldRank}</span> : null}
+        </p>
       </div>
       <ul className="mt-0.5">
         {team.players.map((player) => (

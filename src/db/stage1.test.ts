@@ -12,8 +12,10 @@ describe("stage 1 seed", () => {
     expect(STAGE1_MATCHES.every((match) => match.format === "bo1" && match.round === 1)).toBe(true);
     expect(STAGE1_TEAMS.find((team) => team.seed === 2)).toMatchObject({
       name: "PARIVISION",
-      worldRank: 13,
+      worldRank: 14,
       otherRank: 14,
     });
+    expect(STAGE1_TEAMS.find((team) => team.name === "Imperial")?.worldRank).toBe(35);
+    expect(STAGE1_TEAMS.find((team) => team.name === "Lynn Vision")?.worldRank).toBe(56);
   });
 });

@@ -88,6 +88,7 @@ export default async function PicksPage({
               shortName: team.shortName,
               logoUrl: team.logoUrl,
               seed: team.seed,
+              worldRank: team.worldRank,
             }))}
             initialPicks={mine?.picks ?? []}
           />
@@ -102,6 +103,7 @@ export default async function PicksPage({
           shortName: team.shortName,
           logoUrl: team.logoUrl,
           seed: team.seed,
+          worldRank: team.worldRank,
         }))}
         round1={round1.map((match) => ({ teamAId: match.teamAId, teamBId: match.teamBId }))}
         initialPicks={mine?.picks ?? []}

@@ -14,6 +14,7 @@ export function TeamBadge({
   shortName,
   logoUrl,
   seed,
+  worldRank,
   compact = false,
   align = "start",
 }: {
@@ -21,6 +22,7 @@ export function TeamBadge({
   shortName: string;
   logoUrl?: string | null;
   seed?: number;
+  worldRank?: number | null;
   compact?: boolean;
   align?: "start" | "end";
 }) {
@@ -42,7 +44,13 @@ export function TeamBadge({
       </span>
       <span className="min-w-0">
         <span className={`block truncate font-semibold ${compact ? "text-sm" : "text-[15px]"}`}>{name}</span>
-        {seed != null ? <span className="block text-[11px] text-zinc-500">Seed {seed}</span> : null}
+        {seed != null || worldRank != null ? (
+          <span className="block text-[11px] text-zinc-500">
+            {seed != null ? `Seed ${seed}` : ""}
+            {seed != null && worldRank != null ? " · " : ""}
+            {worldRank != null ? `VRS #${worldRank}` : ""}
+          </span>
+        ) : null}
       </span>
     </span>
   );

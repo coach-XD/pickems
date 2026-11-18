@@ -19,12 +19,14 @@ type Side = {
 export function PlayoffBracket({
   stageId,
   locked,
+  readOnly = false,
   teams,
   initialPicks,
   finalFormat,
 }: {
   stageId: string;
   locked: boolean;
+  readOnly?: boolean;
   teams: Side[];
   initialPicks: PlayoffPick[];
   finalFormat: "bo3" | "bo5";
@@ -35,10 +37,12 @@ export function PlayoffBracket({
   const board = projectPlayoff({ teams, picks, finalFormat });
   const byId = new Map(teams.map((team) => [team.teamId, team]));
 
+  const frozen = locked || readOnly;
+
   function commit(next: PlayoffPick[]) {
     const clean = picksFromPlayoff(projectPlayoff({ teams, picks: next, finalFormat }).matches);
     setPicks(clean);
-    if (locked) return;
+    if (frozen) return;
     setFailed(false);
     startTransition(async () => {
       const saved = await saveBracket(stageId, clean);
@@ -47,7 +51,7 @@ export function PlayoffBracket({
   }
 
   function choose(match: (typeof board.matches)[number], teamId: string) {
-    if (locked || !match.teamAId || !match.teamBId) return;
+    if (frozen || !match.teamAId || !match.teamBId) return;
     const key = pairKey(match.teamAId, match.teamBId);
     const kept = picks.filter((pick) => pick.round < match.round || (pick.round === match.round && pairKey(pick.teamAId, pick.teamBId) !== key));
     commit([
@@ -66,10 +70,14 @@ export function PlayoffBracket({
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm text-zinc-400">Quarterfinals and semifinals are Bo3. The final is {finalFormat === "bo5" ? "Bo5" : "Bo3"}.</p>
-        <div className="flex items-center gap-3">
-          <SaveStatus locked={locked} pending={pending} failed={failed} />
-          <ResetControl disabled={locked || picks.length === 0} onReset={() => commit([])} />
-        </div>
+        {readOnly ? (
+          <span className="text-[11px] font-semibold text-zinc-500">View only</span>
+        ) : (
+          <div className="flex items-center gap-3">
+            <SaveStatus locked={locked} pending={pending} failed={failed} />
+            <ResetControl disabled={locked || picks.length === 0} onReset={() => commit([])} />
+          </div>
+        )}
       </div>
       <div className="overflow-x-auto pb-2">
         <div className="flex min-w-max gap-6">
@@ -90,7 +98,7 @@ export function PlayoffBracket({
                         <button
                           key={teamId ?? `${match.label}-empty`}
                           type="button"
-                          disabled={locked || !team}
+                          disabled={frozen || !team}
                           onClick={() => team && choose(match, team.teamId)}
                           className={cx(
                             "flex h-11 w-full items-center gap-2 rounded-xl px-2 text-left",

@@ -75,7 +75,7 @@ export default async function Home({
         {field.length > 0 ? (
           <div className="flex flex-wrap gap-x-3 gap-y-2">
             {field.map((team) => (
-              <TeamBadge key={team.teamId} name={team.name} shortName={team.shortName} logoUrl={team.logoUrl} seed={team.seed} compact />
+                <TeamBadge key={team.teamId} name={team.name} shortName={team.shortName} logoUrl={team.logoUrl} seed={team.seed} worldRank={team.worldRank} compact />
             ))}
           </div>
         ) : null}
@@ -103,10 +103,10 @@ export default async function Home({
                     )}
                   >
                     <span className="font-mono text-sm text-amber-200">{formatRank(row.rank)}</span>
-                    <span className="truncate font-semibold">
+                    <Link href={`/players/${row.playerId}?stage=${selected?.slug ?? openStage?.slug ?? "stage-1"}`} className="truncate font-semibold hover:text-amber-200">
                       {row.name}
                       {you ? <span className="ml-2 text-xs font-medium text-amber-200">you</span> : null}
-                    </span>
+                    </Link>
                     <span className="text-right text-sm tabular-nums text-zinc-300">{row.matchPoints}</span>
                     <span className="text-right text-sm tabular-nums text-zinc-300">{row.mapPoints}</span>
                     <span className="text-right text-sm tabular-nums text-zinc-300">{row.placementPoints}</span>
