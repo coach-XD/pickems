@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+body {
+  background:
+    radial-gradient(900px 420px at 100% -10%, rgba(251, 191, 36, 0.16), transparent 50%),
+    radial-gradient(700px 420px at -10% 0%, rgba(45, 212, 191, 0.08), transparent 46%),
+    #09090b;
+  color: #f4f4f5;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.freeze-col {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: #18181b;
+}
