@@ -105,16 +105,16 @@ Change a seed, rank, or logo from **Admin → Stage 1 → Teams** and save. Swap
 
 16 teams. Three wins advance, three losses are out: two 3-0s, three 3-1s, three 3-2s, and the mirror on the way out.
 
-- Stage slate: 2 teams to go 3-0 (5 pts each), 2 to go 0-3 (5 pts each), 6 to advance (2 pts each). No team twice.
-- A 3-0 pick that advances 3-1 or 3-2 scores 0. An 0-3 pick that goes out 1-3 or 2-3 scores 0.
-- An advance pick scores 2 for any advancing record, including 3-0.
-- 1 point for the correct match winner. Bo3 adds 1 point for the exact map score (2-0 or 2-1) only when the winner is also correct. Bo1 has no map bonus. No upset bonus.
-- The stage slate locks one hour before the first match of that stage. Each series locks one hour before its start. Times are stored in UTC and shown in the viewer's timezone, with a lock countdown.
-- Other people's picks stay hidden until that lock. Yours stay visible.
+- The bracket derives two 3-0 teams (5 pts each), two 0-3 teams (5 pts each), and six other advancers (2 pts each).
+- A 3-0 team that actually advances 3-1 or 3-2 scores 0 in that slot. An 0-3 team that goes out 1-3 or 2-3 scores 0.
+- 1 point for the correct match winner, only when that matchup is the one the admin enters. A predicted series that never happens scores 0. Bo3 adds 1 point for the exact map score when the winner is also correct.
+- The whole bracket locks one hour before the first Round 1 match. Times are stored in UTC and shown in the viewer's timezone.
 - Each stage has its own board. Overall adds the real stages and leaves the sample stage out.
-- The only tiebreak is more correct placement picks (a correct 3-0, 0-3, or advance slot counts as one). Still tied: shared rank, shown as `T-2`.
+- Equal totals share a rank. Two players on the same score are both 1, and the next player is 3. There is no placement tiebreak.
 
-Records and the advanced/eliminated pools are derived from results. Later rounds are not pre-seeded. Admin can add them by hand or confirm a suggested pairing (same record, high seed vs low seed, rematches avoided when another opponent is free). Series that can advance or eliminate a team default to Bo3; the others default to Bo1. Admin can change the format, the time, and the result.
+Picks are made on a Swiss bracket simulator. Clicking winners generates the next round with Valve's pairing rules. The 3-0, 0-3, and advance slots are read from that bracket. A match scores only when the predicted teams are the teams the admin actually schedules. The whole bracket locks one hour before the first Round 1 match.
+
+Records and the advanced/eliminated pools are derived from results. Later rounds are not pre-seeded. Admin can add them by hand or confirm a suggested pairing from the same Valve engine. Series that can advance or eliminate a team default to Bo3; the others default to Bo1.
 
 ## Scripts
 

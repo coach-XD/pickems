@@ -4,7 +4,8 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getDb } from "@/db";
-import { matchPicks, matches, placementPicks, stages, stageTeams } from "@/db/schema";
+import { bracketPicks, matchPicks, matches, placementPicks, stages, stageTeams } from "@/db/schema";
+import { picksFromBracket, projectBracket, type BracketPick } from "@/lib/bracket";
 import { getSessionPlayer } from "@/lib/auth";
 import { earliest, isLocked } from "@/lib/time";
 import { SLOT_LIMITS, type Slot } from "@/lib/types";
@@ -84,6 +85,33 @@ export async function savePlacements(formData: FormData) {
 
   refresh(stage.slug);
   redirect(`${back}&notice=saved`);
+}
+
+export async function saveBracket(stageId: string, incoming: BracketPick[]) {
+  const player = await getSessionPlayer();
+  if (!player) return { ok: false as const };
+  const db = getDb();
+  const [stage] = await db.select().from(stages).where(eq(stages.id, stageId)).limit(1);
+  if (!stage || (player.isDemo && !stage.isDemo)) return { ok: false as const };
+  const enrolled = await db.select().from(stageTeams).where(eq(stageTeams.stageId, stage.id));
+  const series = await db.select().from(matches).where(eq(matches.stageId, stage.id));
+  const round1 = series.filter((match) => match.round === 1);
+  const first = round1.length
+    ? new Date(Math.min(...round1.map((match) => match.scheduledAt.getTime())))
+    : stage.startsAt;
+  if (isLocked(first, new Date())) return { ok: false as const };
+  const teams = enrolled.map((row) => ({ teamId: row.teamId, seed: row.seed }));
+  const opening = round1.map((match) => ({ teamAId: match.teamAId, teamBId: match.teamBId }));
+  const clean = picksFromBracket(projectBracket({ teams, round1: opening, picks: Array.isArray(incoming) ? incoming : [] }));
+  await db
+    .insert(bracketPicks)
+    .values({ playerId: player.id, stageId: stage.id, picks: clean, updatedAt: new Date() })
+    .onConflictDoUpdate({
+      target: [bracketPicks.playerId, bracketPicks.stageId],
+      set: { picks: clean, updatedAt: new Date() },
+    });
+  refresh(stage.slug);
+  return { ok: true as const };
 }
 
 export async function saveMatchPick(formData: FormData) {

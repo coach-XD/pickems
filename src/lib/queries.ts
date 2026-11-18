@@ -1,9 +1,10 @@
 import { asc, eq, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { getDb } from "@/db";
-import { matchPicks, matches, placementPicks, players, stageTeams, stages, teams } from "@/db/schema";
+import { bracketPicks, matchPicks, matches, placementPicks, players, stageTeams, stages, teams } from "@/db/schema";
+import { scoreBracket } from "./bracket";
 import { rankRows, type RankedScore } from "./ranking";
-import { addStageScores, emptyStageScore, scorePlayerStage } from "./scoring";
+import { addStageScores, emptyStageScore } from "./scoring";
 import { deriveStandings, groupByRecord } from "./swiss";
 import type { SeriesFormat, Slot } from "./types";
 
@@ -129,11 +130,7 @@ export async function getLeaderboard(stageIds: string[], includeDemoPlayers: boo
 
   const db = getDb();
   const matchRows = await db.select().from(matches).where(inArray(matches.stageId, stageIds));
-  const matchIds = matchRows.map((match) => match.id);
-  const seriesPicks = matchIds.length
-    ? await db.select().from(matchPicks).where(inArray(matchPicks.matchId, matchIds))
-    : [];
-  const slotPicks = await db.select().from(placementPicks).where(inArray(placementPicks.stageId, stageIds));
+  const brackets = await db.select().from(bracketPicks).where(inArray(bracketPicks.stageId, stageIds));
   const enrolled = await db.select().from(stageTeams).where(inArray(stageTeams.stageId, stageIds));
 
   const recordsByStage = new Map<string, Map<string, { wins: number; losses: number }>>();
@@ -160,20 +157,21 @@ export async function getLeaderboard(stageIds: string[], includeDemoPlayers: boo
     roster.map((player) => {
       const total = stageIds.reduce((sum, stageId) => {
         const stageMatches = matchRows.filter((match) => match.stageId === stageId);
-        const score = scorePlayerStage({
-          matches: stageMatches,
-          matchPicks: seriesPicks
-            .filter((pick) => pick.playerId === player.id && stageMatches.some((match) => match.id === pick.matchId))
-            .map((pick) => ({
-              matchId: pick.matchId,
-              winnerId: pick.winnerId,
-              scoreA: pick.scoreA,
-              scoreB: pick.scoreB,
-            })),
-          placementPicks: slotPicks
-            .filter((pick) => pick.playerId === player.id && pick.stageId === stageId)
-            .map((pick) => ({ teamId: pick.teamId, slot: pick.slot })),
-          records: recordsByStage.get(stageId) ?? new Map(),
+        const bracket = brackets.find((row) => row.playerId === player.id && row.stageId === stageId);
+        const score = scoreBracket({
+          teams: enrolled.filter((row) => row.stageId === stageId).map((row) => ({ teamId: row.teamId, seed: row.seed })),
+          round1: stageMatches.filter((match) => match.round === 1).map((match) => ({ teamAId: match.teamAId, teamBId: match.teamBId })),
+          picks: bracket?.picks ?? [],
+          realMatches: stageMatches.map((match) => ({
+            round: match.round,
+            teamAId: match.teamAId,
+            teamBId: match.teamBId,
+            format: match.format,
+            winnerId: match.winnerId,
+            scoreA: match.scoreA,
+            scoreB: match.scoreB,
+          })),
+          realRecords: recordsByStage.get(stageId) ?? new Map(),
         });
         return addStageScores(sum, score);
       }, emptyStageScore());
@@ -228,6 +226,10 @@ export async function picksForPlayer(playerId: string, stageId: string, matchIds
         scoreB: pick.scoreB,
       })),
   };
+}
+
+export async function listBrackets(stageId: string) {
+  return getDb().select().from(bracketPicks).where(eq(bracketPicks.stageId, stageId));
 }
 
 export async function allPicksForStage(stageId: string, matchIds: string[]) {

@@ -80,7 +80,7 @@ export default async function Home({
                     you ? "border-amber-400/50 bg-amber-400/10" : "border-white/10 bg-zinc-900/70",
                   )}
                 >
-                  <span className="w-12 shrink-0 font-mono text-sm text-amber-200">{formatRank(row.rank, row.tied)}</span>
+                  <span className="w-12 shrink-0 font-mono text-sm text-amber-200">{formatRank(row.rank)}</span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold">
                       {row.name}
@@ -97,7 +97,7 @@ export default async function Home({
           </ol>
         )}
         <p className="text-xs leading-5 text-zinc-500">
-          Ties break by correct placement picks. If that is level too, the rank is shared.
+          Tied totals share a rank, and the next rank skips.
           {selected?.isDemo ? " This is the sample stage, kept off the overall total." : ""}
         </p>
       </div>
