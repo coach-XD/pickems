@@ -1,7 +1,7 @@
 import { asc, eq, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { getDb } from "@/db";
-import { bracketPicks, matchPicks, matches, placementPicks, players, stageTeams, stages, teams } from "@/db/schema";
+import { bracketPicks, matchPicks, matches, placementPicks, players, stageTeams, stages, teamPlayers, teams } from "@/db/schema";
 import { scoreBracket } from "./bracket";
 import { allowDemoData, resolveLogo } from "./logos";
 import { scorePlayoff, type PlayoffPick } from "./playoff";
@@ -83,6 +83,98 @@ export async function listStageTeams(stageId: string): Promise<StageTeamView[]> 
     .where(eq(stageTeams.stageId, stageId))
     .orderBy(asc(stageTeams.seed));
   return rows.map((team) => withLogo(team));
+}
+
+export type RosterPlayerView = {
+  id: string;
+  nickname: string;
+  sortOrder: number;
+  rating: number | null;
+};
+
+export type StageRosterTeam = StageTeamView & { players: RosterPlayerView[] };
+
+export async function listStageRoster(stageId: string): Promise<StageRosterTeam[]> {
+  const stageTeamsInOrder = await listStageTeams(stageId);
+  if (stageTeamsInOrder.length === 0) return [];
+  const rows = await getDb()
+    .select({
+      id: teamPlayers.id,
+      teamId: teamPlayers.teamId,
+      nickname: teamPlayers.nickname,
+      sortOrder: teamPlayers.sortOrder,
+      rating: teamPlayers.rating,
+    })
+    .from(teamPlayers)
+    .where(inArray(teamPlayers.teamId, stageTeamsInOrder.map((team) => team.teamId)))
+    .orderBy(asc(teamPlayers.sortOrder), asc(teamPlayers.nickname));
+  const byTeam = new Map<string, RosterPlayerView[]>();
+  for (const row of rows) {
+    const list = byTeam.get(row.teamId) ?? [];
+    list.push({ id: row.id, nickname: row.nickname, sortOrder: row.sortOrder, rating: row.rating });
+    byTeam.set(row.teamId, list);
+  }
+  return stageTeamsInOrder.map((team) => ({ ...team, players: byTeam.get(team.teamId) ?? [] }));
+}
+
+export type AdminRosterTeam = {
+  teamId: string;
+  name: string;
+  shortName: string;
+  logoUrl: string | null;
+  seed: number | null;
+  players: RosterPlayerView[];
+};
+
+export async function listRosterForAdmin(): Promise<AdminRosterTeam[]> {
+  const db = getDb();
+  const teamRows = await db
+    .select({
+      teamId: teams.id,
+      name: teams.name,
+      shortName: teams.shortName,
+      logoUrl: teams.logoUrl,
+      seed: stageTeams.seed,
+    })
+    .from(teams)
+    .leftJoin(stageTeams, eq(stageTeams.teamId, teams.id))
+    .leftJoin(stages, eq(stages.id, stageTeams.stageId));
+  const playerRows = await db
+    .select({
+      id: teamPlayers.id,
+      teamId: teamPlayers.teamId,
+      nickname: teamPlayers.nickname,
+      sortOrder: teamPlayers.sortOrder,
+      rating: teamPlayers.rating,
+    })
+    .from(teamPlayers)
+    .orderBy(asc(teamPlayers.sortOrder), asc(teamPlayers.nickname));
+  const byTeam = new Map<string, RosterPlayerView[]>();
+  for (const row of playerRows) {
+    const list = byTeam.get(row.teamId) ?? [];
+    list.push({ id: row.id, nickname: row.nickname, sortOrder: row.sortOrder, rating: row.rating });
+    byTeam.set(row.teamId, list);
+  }
+  const grouped = new Map<string, AdminRosterTeam>();
+  for (const row of teamRows) {
+    const current = grouped.get(row.teamId);
+    const seed = row.seed ?? null;
+    if (!current) {
+      grouped.set(row.teamId, {
+        teamId: row.teamId,
+        name: row.name,
+        shortName: row.shortName,
+        logoUrl: resolveLogo(row),
+        seed,
+        players: byTeam.get(row.teamId) ?? [],
+      });
+      continue;
+    }
+    if (seed != null && (current.seed == null || seed < current.seed)) current.seed = seed;
+  }
+  return [...grouped.values()]
+    .filter((team) => team.players.length > 0)
+    .sort((a, b) => (a.seed ?? 99) - (b.seed ?? 99) || a.name.localeCompare(b.name));
 }
 
 export function withLogo<T extends { name: string; logoUrl: string | null }>(team: T): T {

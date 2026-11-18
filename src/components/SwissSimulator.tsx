@@ -150,8 +150,8 @@ export function SwissSimulator({
           Reset
         </button>
       </div>
-      <div className="overflow-x-auto pb-2">
-        <div ref={boardRef} className="relative flex min-w-max gap-3 px-1 md:min-w-0 md:w-full md:justify-between">
+      <div className="overflow-x-auto pb-2 xl:overflow-x-hidden">
+        <div ref={boardRef} className="relative flex min-w-max gap-2 px-1 min-[1560px]:gap-3 xl:min-w-0 xl:w-full xl:justify-between">
           <svg className="pointer-events-none absolute inset-0 h-full w-full">
             {lines.map((line, index) => (
               <path
@@ -171,7 +171,7 @@ export function SwissSimulator({
               return bw - aw || al - bl;
             });
             return (
-              <section key={round} className="relative z-10 w-36 shrink-0 space-y-3 sm:w-40">
+              <section key={round} className="relative z-10 w-[8.25rem] shrink-0 space-y-2 min-[1560px]:w-40 min-[1560px]:space-y-3">
                 <div className="flex items-center justify-between gap-2">
                   <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-400">Round {round}</h2>
                   <button
@@ -323,7 +323,7 @@ function ResultColumn({
   const blocks = [...groups, ...extra].filter(([, ids]) => ids.length > 0);
   if (blocks.length === 0) return null;
   return (
-    <section className="relative z-10 w-36 shrink-0 space-y-3 sm:w-40">
+    <section className="relative z-10 w-[8.25rem] shrink-0 space-y-2 min-[1560px]:w-40 min-[1560px]:space-y-3">
       <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-400">{title}</h2>
       {blocks.map(([label, ids]) => (
         <div

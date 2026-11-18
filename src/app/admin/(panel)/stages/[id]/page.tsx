@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   addMatch,
@@ -112,6 +113,11 @@ export default async function EditStagePage({
       <section className="space-y-3" id="teams">
         <div>
           <h2 className="text-xl font-semibold">Teams</h2>
+          <p className="mt-1 text-sm text-zinc-400">
+            <Link href="/admin/rosters" className="font-semibold text-amber-300">
+              Edit roster nicknames and ratings
+            </Link>
+          </p>
           <p className="mt-1 text-sm text-zinc-400">
             Seed is the opening Swiss seed. World rank is the left badge. Other rank is the orange badge. Names and logos are shared if the team appears in another stage. Paste an https logo URL, or leave it blank for an initials badge.
           </p>

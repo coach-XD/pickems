@@ -2,10 +2,11 @@ import Link from "next/link";
 import { Flash } from "@/components/Flash";
 import { Countdown } from "@/components/Countdown";
 import { Rules } from "@/components/Rules";
+import { PicksFrame } from "@/components/TeamRoster";
 import { PlayoffBracket } from "@/components/PlayoffBracket";
 import { SwissSimulator } from "@/components/SwissSimulator";
 import { getSessionPlayer } from "@/lib/auth";
-import { listBrackets, stageBundle, listStages } from "@/lib/queries";
+import { listBrackets, listStageRoster, stageBundle, listStages } from "@/lib/queries";
 import { demoCookieOn } from "@/lib/auth";
 import { allowDemoData } from "@/lib/logos";
 import { earliest, isLocked, lockInstant } from "@/lib/time";
@@ -39,6 +40,7 @@ export default async function PicksPage({
   }
 
   const bundle = await stageBundle(stage.id);
+  const roster = await listStageRoster(stage.id);
   const brackets = await listBrackets(stage.id);
   const mine = brackets.find((row) => row.playerId === player.id);
   const readOnly = player.isDemo && !stage.isDemo;
@@ -50,10 +52,11 @@ export default async function PicksPage({
   const slateLocked = readOnly || isLocked(firstStart, new Date());
 
   return (
-    <div className="space-y-4">
+    <PicksFrame teams={roster}>
+    <div className="space-y-3">
       <Flash error={query.error} notice={query.notice} />
       <div>
-        <h1 className="text-3xl font-semibold tracking-tight">My picks</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">My picks</h1>
         <p className="mt-1 text-sm text-zinc-400">
           Bracket <Countdown lockIso={lockInstant(firstStart).toISOString()} />
         </p>
@@ -115,6 +118,7 @@ export default async function PicksPage({
       )}
       <Rules />
     </div>
+    </PicksFrame>
   );
 }
 

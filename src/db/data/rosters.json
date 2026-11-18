@@ -1,0 +1,377 @@
+[
+ {
+  "team": "Ninjas in Pyjamas",
+  "players": [
+   {
+    "nickname": "sjuush"
+   },
+   {
+    "nickname": "xKacpersky"
+   },
+   {
+    "nickname": "stavn"
+   },
+   {
+    "nickname": "Krimbo"
+   },
+   {
+    "nickname": "adamb"
+   }
+  ],
+  "coach": "Xizt",
+  "source_url": "https://liquipedia.net/counterstrike/PGL/2026/Singapore#Stage_1_Invites",
+  "confirmed": true
+ },
+ {
+  "team": "PARIVISION",
+  "players": [
+   {
+    "nickname": "Jame"
+   },
+   {
+    "nickname": "xiELO"
+   },
+   {
+    "nickname": "zweih"
+   },
+   {
+    "nickname": "FL1T"
+   },
+   {
+    "nickname": "HObbit"
+   }
+  ],
+  "coach": "dastan",
+  "source_url": "https://liquipedia.net/counterstrike/PGL/2026/Singapore#Stage_1_Invites",
+  "confirmed": true,
+  "notes": "Liquipedia lists the team as PVISION; sub slaxejezzz (not played)"
+ },
+ {
+  "team": "HEROIC",
+  "players": [
+   {
+    "nickname": "nilo"
+   },
+   {
+    "nickname": "Chr1zN"
+   },
+   {
+    "nickname": "susp"
+   },
+   {
+    "nickname": "Martinez"
+   },
+   {
+    "nickname": "Brollan"
+   }
+  ],
+  "coach": "Snappi",
+  "source_url": "https://liquipedia.net/counterstrike/PGL/2026/Singapore#Stage_1_Invites",
+  "confirmed": true
+ },
+ {
+  "team": "FaZe",
+  "players": [
+   {
+    "nickname": "frozen"
+   },
+   {
+    "nickname": "jcobbb"
+   },
+   {
+    "nickname": "Twistzz"
+   },
+   {
+    "nickname": "JBOEN"
+   },
+   {
+    "nickname": "Neityu"
+   }
+  ],
+  "coach": "enkay J",
+  "source_url": "https://liquipedia.net/counterstrike/PGL/2026/Singapore#Stage_1_Invites",
+  "confirmed": true,
+  "notes": "sub GruBy (not played)"
+ },
+ {
+  "team": "Liquid",
+  "players": [
+   {
+    "nickname": "NAF"
+   },
+   {
+    "nickname": "EliGE"
+   },
+   {
+    "nickname": "malbsMd"
+   },
+   {
+    "nickname": "Jorko"
+   },
+   {
+    "nickname": "JT"
+   }
+  ],
+  "coach": "flashie",
+  "source_url": "https://liquipedia.net/counterstrike/PGL/2026/Singapore#Stage_1_Invites",
+  "confirmed": true
+ },
+ {
+  "team": "Eternal Fire",
+  "players": [
+   {
+    "nickname": "jottAAA"
+   },
+   {
+    "nickname": "regali"
+   },
+   {
+    "nickname": "MisteM"
+   },
+   {
+    "nickname": "Kvem"
+   },
+   {
+    "nickname": "soulfly"
+   }
+  ],
+  "coach": "Fabre",
+  "source_url": "https://liquipedia.net/counterstrike/PGL/2026/Singapore#Stage_1_Invites",
+  "confirmed": true,
+  "notes": "sub Hydro2K (not played)"
+ },
+ {
+  "team": "100 Thieves",
+  "players": [
+   {
+    "nickname": "rain"
+   },
+   {
+    "nickname": "poiii"
+   },
+   {
+    "nickname": "sirah"
+   },
+   {
+    "nickname": "dev1ce"
+   },
+   {
+    "nickname": "Gizmy"
+   }
+  ],
+  "coach": "gla1ve",
+  "source_url": "https://liquipedia.net/counterstrike/PGL/2026/Singapore#Stage_1_Invites",
+  "confirmed": true
+ },
+ {
+  "team": "9z",
+  "players": [
+   {
+    "nickname": "max"
+   },
+   {
+    "nickname": "HUASOPEEK"
+   },
+   {
+    "nickname": "luchov"
+   },
+   {
+    "nickname": "dgt"
+   },
+   {
+    "nickname": "history"
+   }
+  ],
+  "coach": "BIT",
+  "source_url": "https://liquipedia.net/counterstrike/PGL/2026/Singapore#Stage_1_Invites",
+  "confirmed": true,
+  "notes": "STAND-IN: history replaces meyern (listed played=false)"
+ },
+ {
+  "team": "M80",
+  "players": [
+   {
+    "nickname": "Swisher"
+   },
+   {
+    "nickname": "slaxz-"
+   },
+   {
+    "nickname": "s1n"
+   },
+   {
+    "nickname": "Lake"
+   },
+   {
+    "nickname": "JBa"
+   }
+  ],
+  "coach": "dephh",
+  "source_url": "https://liquipedia.net/counterstrike/PGL/2026/Singapore#Stage_1_Invites",
+  "confirmed": true,
+  "notes": "sub M0nstr (not played)"
+ },
+ {
+  "team": "DENDELE",
+  "players": [
+   {
+    "nickname": "gafolo"
+   },
+   {
+    "nickname": "rdnzao"
+   },
+   {
+    "nickname": "doc"
+   },
+   {
+    "nickname": "koala"
+   },
+   {
+    "nickname": "maxxkor"
+   }
+  ],
+  "coach": "coachi",
+  "source_url": "https://liquipedia.net/counterstrike/PGL/2026/Singapore#Stage_1_Invites",
+  "confirmed": true,
+  "notes": "sub D10S (not played)"
+ },
+ {
+  "team": "Imperial",
+  "players": [
+   {
+    "nickname": "VINI"
+   },
+   {
+    "nickname": "noway"
+   },
+   {
+    "nickname": "chelo"
+   },
+   {
+    "nickname": "decenty"
+   },
+   {
+    "nickname": "saadzin"
+   }
+  ],
+  "coach": "tacitus",
+  "source_url": "https://liquipedia.net/counterstrike/PGL/2026/Singapore#Stage_1_Invites",
+  "confirmed": true
+ },
+ {
+  "team": "Wildcard",
+  "players": [
+   {
+    "nickname": "reck"
+   },
+   {
+    "nickname": "HexT"
+   },
+   {
+    "nickname": "nEMANHA"
+   },
+   {
+    "nickname": "Cxzi"
+   },
+   {
+    "nickname": "fr3nd"
+   }
+  ],
+  "coach": "splawik",
+  "source_url": "https://liquipedia.net/counterstrike/PGL/2026/Singapore#Stage_1_Invites",
+  "confirmed": true
+ },
+ {
+  "team": "BC.Game",
+  "players": [
+   {
+    "nickname": "s1mple"
+   },
+   {
+    "nickname": "Senzu"
+   },
+   {
+    "nickname": "Magisk"
+   },
+   {
+    "nickname": "mzinho"
+   },
+   {
+    "nickname": "asap"
+   }
+  ],
+  "coach": "TaZ",
+  "source_url": "https://liquipedia.net/counterstrike/PGL/2026/Singapore#Stage_1_Invites",
+  "confirmed": true,
+  "notes": "Sam confirmed team list; Liquipedia lists this slot as GOSH."
+ },
+ {
+  "team": "FlyQuest",
+  "players": [
+   {
+    "nickname": "INS"
+   },
+   {
+    "nickname": "Vexite"
+   },
+   {
+    "nickname": "nettik"
+   },
+   {
+    "nickname": "jks"
+   },
+   {
+    "nickname": "aliStair"
+   }
+  ],
+  "coach": "AZR",
+  "source_url": "https://liquipedia.net/counterstrike/PGL/2026/Singapore#Stage_1_Invites",
+  "confirmed": true
+ },
+ {
+  "team": "Chinggis Warriors",
+  "players": [
+   {
+    "nickname": "ROUX"
+   },
+   {
+    "nickname": "cool4st"
+   },
+   {
+    "nickname": "sk0R"
+   },
+   {
+    "nickname": "fury5k"
+   },
+   {
+    "nickname": "tikuak"
+   }
+  ],
+  "coach": "Redka",
+  "source_url": "https://liquipedia.net/counterstrike/PGL/2026/Singapore#Stage_1_Invites",
+  "confirmed": true
+ },
+ {
+  "team": "Lynn Vision",
+  "players": [
+   {
+    "nickname": "westmelon"
+   },
+   {
+    "nickname": "z4kr"
+   },
+   {
+    "nickname": "EmiliaQAQ"
+   },
+   {
+    "nickname": "Starry"
+   },
+   {
+    "nickname": "C4LLM3SU3"
+   }
+  ],
+  "coach": "GUM",
+  "source_url": "https://liquipedia.net/counterstrike/PGL/2026/Singapore#Stage_1_Invites",
+  "confirmed": true
+ }
+]

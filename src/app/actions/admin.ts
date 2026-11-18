@@ -4,7 +4,7 @@ import { and, eq, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getDb } from "@/db";
-import { matches, players, stages, stageTeams, teams } from "@/db/schema";
+import { matches, players, stages, stageTeams, teamPlayers, teams } from "@/db/schema";
 import { isAdmin } from "@/lib/auth";
 import { parseIso } from "@/lib/time";
 import type { SeriesFormat } from "@/lib/types";
@@ -25,6 +25,7 @@ function refresh(slug?: string) {
   revalidatePath("/stages");
   revalidatePath("/admin");
   revalidatePath("/admin/players");
+  revalidatePath("/admin/rosters");
   if (slug) {
     revalidatePath(`/stages/${slug}`);
     revalidatePath(`/stages/${slug}/compare`);
@@ -431,6 +432,55 @@ export async function deleteMatch(formData: FormData) {
   const [stage] = await db.select().from(stages).where(eq(stages.id, match.stageId)).limit(1);
   refresh(stage?.slug);
   redirect(`/admin/stages/${match.stageId}?notice=deleted#matches`);
+}
+
+function optionalRating(value: FormDataEntryValue | null): number | null {
+  const raw = String(value ?? "").trim();
+  if (!raw) return null;
+  if (!/^(?:0|[1-9]\d?)(?:\.\d{1,2})?$/.test(raw)) return Number.NaN;
+  const rating = Number(raw);
+  if (rating > 3) return Number.NaN;
+  return rating;
+}
+
+export async function saveRoster(formData: FormData) {
+  await gate();
+  const teamId = String(formData.get("teamId") ?? "");
+  const ids = formData.getAll("playerId").map(String);
+  const back = "/admin/rosters";
+  if (!teamId || ids.length === 0) bounce(back, "not-found");
+  const db = getDb();
+  const rows = await db.select().from(teamPlayers).where(eq(teamPlayers.teamId, teamId));
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  const next = ids.map((id) => {
+    const nickname = requiredText(formData.get(`nickname_${id}`), 24);
+    const rating = optionalRating(formData.get(`rating_${id}`));
+    return { id, nickname, rating };
+  });
+  if (next.some((row) => !byId.has(row.id) || !row.nickname || Number.isNaN(row.rating))) bounce(back, "roster-fields");
+  const names = new Set(next.map((row) => row.nickname.toLowerCase()));
+  if (names.size !== next.length) bounce(back, "roster-fields");
+
+  try {
+    for (const row of next) {
+      const current = byId.get(row.id)!;
+      const ratingChanged = (current.rating == null ? null : current.rating.toFixed(2)) !== (row.rating == null ? null : row.rating.toFixed(2));
+      if (current.nickname === row.nickname && !ratingChanged) continue;
+      await db
+        .update(teamPlayers)
+        .set({
+          nickname: row.nickname,
+          rating: row.rating,
+          ratingUpdatedAt: ratingChanged ? new Date() : current.ratingUpdatedAt,
+        })
+        .where(and(eq(teamPlayers.id, row.id), eq(teamPlayers.teamId, teamId)));
+    }
+  } catch (error) {
+    if (isUniqueViolation(error)) bounce(back, "roster-fields");
+    throw error;
+  }
+  refresh();
+  redirect(`${back}?notice=saved#team-${teamId}`);
 }
 
 export async function removePlayer(formData: FormData) {
