@@ -10,7 +10,7 @@ export function PicksFrame({ teams, children }: { teams: StageRosterTeam[]; chil
   const [open, setOpen] = useState(false);
   const showRoster = teams.length > 0;
   return (
-    <div className="flex flex-col items-start gap-3 xl:flex-row">
+    <div className="flex w-full min-w-0 flex-col items-start gap-3 xl:flex-row">
       {showRoster ? (
         <aside className={cx("w-full xl:order-first xl:w-[360px] xl:shrink-0", open ? "order-last block" : "hidden xl:block")}>
           <RosterGrid teams={teams} />

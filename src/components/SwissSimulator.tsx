@@ -101,8 +101,8 @@ export function SwissSimulator({
           <ResetControl disabled={locked || picks.length === 0} label="Reset bracket" onReset={() => commit([])} />
         </div>
       </div>
-      <div className="no-scrollbar overflow-x-auto pb-1">
-        <div className="flex w-max gap-3 xl:w-full xl:justify-between">
+      <div className="min-w-0 overflow-x-auto pb-1">
+        <div className="flex w-max gap-2 pr-2">
           {rounds.map((round) => {
             const inRound = matches.filter((match) => match.round === round);
             const records = [...new Set(inRound.map((match) => `${match.wins}-${match.losses}`))].sort((a, b) => {
@@ -111,7 +111,7 @@ export function SwissSimulator({
               return bw - aw || al - bl;
             });
             return (
-              <section key={round} className="w-[11rem] shrink-0 space-y-1 overflow-hidden xl:w-[12.5rem]">
+              <section key={round} className="w-[10.25rem] shrink-0 space-y-1 overflow-hidden xl:w-[12rem]">
                 <div className="flex items-center justify-between gap-1">
                   <h2 className="truncate text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-400 xl:text-xs">Round {round}</h2>
                   <button
@@ -257,13 +257,13 @@ function ResultColumn({
   const blocks = [...groups, ...extra].filter(([, ids]) => ids.length > 0);
   if (blocks.length === 0) return null;
   return (
-    <section className="w-[11rem] shrink-0 space-y-1.5 overflow-hidden xl:w-[12.5rem]">
+    <section className="w-[11.5rem] shrink-0 space-y-1.5">
       <h2 className="truncate text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-400 xl:text-xs">{title}</h2>
       {blocks.map(([label, ids]) => (
         <div
           key={label}
           className={cx(
-            "rounded-lg border p-1",
+            "rounded-lg border p-1.5",
             tone === "green" && label !== "3-1 / 3-2" && "border-emerald-400/50 bg-emerald-500/20",
             tone === "green" && label === "3-1 / 3-2" && "border-emerald-700/60 bg-emerald-900/50",
             tone === "red" && label === "0-3" && "border-rose-400/60 bg-rose-600/25",
@@ -271,14 +271,32 @@ function ResultColumn({
           )}
         >
           <p className="mb-1 text-center text-[10px] font-semibold">{label}</p>
-          <div className="flex flex-wrap justify-center gap-1">
+          <div className="flex flex-wrap gap-x-2 gap-y-1">
             {ids.map((teamId) => (
-              <Spot key={teamId} team={teamById.get(teamId)!} selected={false} disabled />
+              <PoolChip key={teamId} team={teamById.get(teamId)!} />
             ))}
           </div>
         </div>
       ))}
     </section>
+  );
+}
+
+function PoolChip({ team }: { team: SimTeam }) {
+  const [broken, setBroken] = useState(false);
+  const logo = resolveLogo(team);
+  return (
+    <span className="inline-flex max-w-full items-center gap-1" title={team.name}>
+      <span className="grid h-5 w-5 shrink-0 place-items-center overflow-hidden rounded bg-zinc-800">
+        {logo && !broken ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={logo} alt="" className="h-full w-full object-contain" onError={() => setBroken(true)} />
+        ) : (
+          <span className="text-[8px] font-bold text-zinc-200">{team.shortName.slice(0, 2)}</span>
+        )}
+      </span>
+      <span className="text-[11px] font-medium leading-none text-white">{team.shortName}</span>
+    </span>
   );
 }
 

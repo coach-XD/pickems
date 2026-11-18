@@ -5,7 +5,7 @@ import { attachTeams } from "@/app/actions/admin";
 import { SubmitButton } from "@/components/SubmitButton";
 import { btnPrimary, cardClass } from "@/lib/ui";
 
-type CatalogTeam = { id: string; name: string; shortName: string };
+type CatalogTeam = { id: string; name: string; shortName: string; seed: number | null };
 
 export function BulkTeamAdd({
   stageId,
@@ -18,9 +18,18 @@ export function BulkTeamAdd({
 }) {
   const [order, setOrder] = useState<string[]>([]);
   const picked = new Set(order);
+  const byId = new Map(teams.map((team) => [team.id, team]));
 
   function toggle(id: string) {
-    setOrder((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
+    setOrder((current) => {
+      if (current.includes(id)) return current.filter((item) => item !== id);
+      const seed = byId.get(id)?.seed ?? 999;
+      const next = [...current];
+      const index = next.findIndex((item) => (byId.get(item)?.seed ?? 999) > seed);
+      if (index === -1) next.push(id);
+      else next.splice(index, 0, id);
+      return next;
+    });
   }
 
   function move(index: number, direction: -1 | 1) {
@@ -35,7 +44,6 @@ export function BulkTeamAdd({
   }
 
   if (teams.length === 0) return null;
-  const byId = new Map(teams.map((team) => [team.id, team]));
 
   return (
     <form action={attachTeams} className={`${cardClass} space-y-3 p-4`}>
@@ -51,6 +59,7 @@ export function BulkTeamAdd({
           <label key={team.id} className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-white/5">
             <input type="checkbox" checked={picked.has(team.id)} onChange={() => toggle(team.id)} />
             <span className="truncate">
+              {team.seed != null ? <span className="mr-1 text-zinc-500">#{team.seed}</span> : null}
               <span className="font-semibold">{team.shortName}</span>
               <span className="text-zinc-400"> {team.name}</span>
             </span>
@@ -63,7 +72,7 @@ export function BulkTeamAdd({
             const team = byId.get(id);
             if (!team) return null;
             return (
-              <li key={id} className="flex items-center gap-2">
+              <li key={`${id}-${index}`} className="flex items-center gap-2">
                 <input type="hidden" name="teamId" value={id} />
                 <input
                   name={`seed_${id}`}
