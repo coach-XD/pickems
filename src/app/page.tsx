@@ -4,7 +4,8 @@ import { AppShell } from "@/components/AppShell";
 import { Flash } from "@/components/Flash";
 import { demoCookieOn, getSessionPlayer } from "@/lib/auth";
 import { formatRank } from "@/lib/ranking";
-import { getLeaderboard, hasDemoStage, listStages } from "@/lib/queries";
+import { TeamBadge } from "@/components/TeamBadge";
+import { getLeaderboard, hasDemoStage, listStageTeams, listStages } from "@/lib/queries";
 import { btnGhost, cardClass, cx } from "@/lib/ui";
 
 export default async function Home({
@@ -23,6 +24,8 @@ export default async function Home({
   const selected = requested === "overall" ? null : (stages.find((stage) => stage.slug === requested) ?? null);
   const stageIds = selected ? [selected.id] : realStages.map((stage) => stage.id);
   const board = await getLeaderboard(stageIds, Boolean(selected?.isDemo));
+  const logoStageId = selected?.id ?? realStages[0]?.id;
+  const field = logoStageId ? await listStageTeams(logoStageId) : [];
   const tabs = [
     { href: "/?view=overall", label: "Overall", active: !selected },
     ...stages.map((stage) => ({
@@ -66,6 +69,15 @@ export default async function Home({
             </Link>
           ))}
         </div>
+        {field.length > 0 ? (
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {field.map((team) => (
+              <div key={team.teamId} className="shrink-0">
+                <TeamBadge name={team.name} shortName={team.shortName} logoUrl={team.logoUrl} seed={team.seed} compact />
+              </div>
+            ))}
+          </div>
+        ) : null}
         {board.length === 0 ? (
           <p className={`${cardClass} p-4 text-sm text-zinc-400`}>Nobody has joined yet. Share the invite link.</p>
         ) : (

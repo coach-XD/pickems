@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
+import { resolveLogo } from "@/lib/logos";
 import { saveBracket } from "@/app/actions/picks";
 import { derivedPlacements, picksFromBracket, projectBracket, type BracketPick, type RealSeries } from "@/lib/bracket";
 import { pairKey } from "@/lib/swiss";
@@ -362,6 +363,8 @@ function Spot({
   disabled: boolean;
   onClick?: () => void;
 }) {
+  const [broken, setBroken] = useState(false);
+  const logo = resolveLogo(team);
   return (
     <button
       type="button"
@@ -380,9 +383,9 @@ function Spot({
           selected && "ring-2 ring-emerald-300",
         )}
       >
-        {team.logoUrl ? (
+        {logo && !broken ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={team.logoUrl} alt="" className="h-full w-full object-contain" />
+          <img src={logo} alt="" className="h-full w-full object-contain" onError={() => setBroken(true)} />
         ) : (
           team.shortName.slice(0, 3).toUpperCase()
         )}

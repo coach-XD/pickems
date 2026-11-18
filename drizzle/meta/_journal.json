@@ -15,6 +15,13 @@
       "when": 1795009871662,
       "tag": "0001_bracket_picks",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795013030435,
+      "tag": "0002_stage_gates",
+      "breakpoints": true
     }
   ]
 }

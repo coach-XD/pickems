@@ -11,6 +11,7 @@ import {
   updateStage,
 } from "@/app/actions/admin";
 import { ConfirmForm } from "@/components/ConfirmForm";
+import { TeamBadge } from "@/components/TeamBadge";
 import { Flash } from "@/components/Flash";
 import { LocalTime } from "@/components/LocalTime";
 import { SubmitButton } from "@/components/SubmitButton";
@@ -82,6 +83,29 @@ export default async function EditStagePage({
           <span className={labelClass}>Sort order</span>
           <input name="sortOrder" defaultValue={stage.sortOrder} required className={inputClass} />
         </label>
+        <label className="block">
+          <span className={labelClass}>Picks</span>
+          <select name="picksOpen" defaultValue={stage.picksOpen ? "1" : "0"} className={selectClass}>
+            <option value="0">Locked</option>
+            <option value="1">Open for picks</option>
+          </select>
+        </label>
+        {stage.kind === "playoff" ? (
+          <label className="block">
+            <span className={labelClass}>Final</span>
+            <select name="finalFormat" defaultValue={stage.finalFormat === "bo5" ? "bo5" : "bo3"} className={selectClass}>
+              <option value="bo3">Best of 3</option>
+              <option value="bo5">Best of 5</option>
+            </select>
+          </label>
+        ) : (
+          <input type="hidden" name="finalFormat" value={stage.finalFormat} />
+        )}
+        <p className="text-xs text-zinc-500">
+          {stage.kind === "playoff"
+            ? "Assign eight teams and seeds. Quarterfinals are 1 vs 8, 4 vs 5, 2 vs 7, and 3 vs 6."
+            : "Stage 2 is eight advancers plus eight invited teams. Stage 3 is the same shape. Opening picks does not add teams."}
+        </p>
         <SubmitButton className={btnPrimary}>Save stage</SubmitButton>
       </form>
 
@@ -95,6 +119,7 @@ export default async function EditStagePage({
         <div className="space-y-3">
           {bundle.teams.map((team) => (
             <article key={team.stageTeamId} className={`${cardClass} space-y-3 p-3`}>
+              <TeamBadge name={team.name} shortName={team.shortName} logoUrl={team.logoUrl} seed={team.seed} compact />
               <input type="hidden" name="stageTeamId" value={team.stageTeamId} form="save-teams" />
               <div className="grid grid-cols-2 gap-2">
                 <label className="col-span-2 block">

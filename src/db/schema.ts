@@ -21,6 +21,9 @@ export const stages = pgTable("stages", {
   endsAt: timestamp("ends_at", { withTimezone: true, mode: "date" }),
   sortOrder: integer("sort_order").notNull().default(0),
   isDemo: boolean("is_demo").notNull().default(false),
+  picksOpen: boolean("picks_open").notNull().default(true),
+  kind: text("kind").notNull().default("swiss"),
+  finalFormat: text("final_format").notNull().default("bo3"),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 }, (table) => [uniqueIndex("stages_slug").on(table.slug)]);
 

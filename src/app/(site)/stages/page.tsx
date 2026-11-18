@@ -16,8 +16,8 @@ export default async function StagesPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-3xl font-semibold tracking-tight">Swiss</h1>
-        <p className="mt-1 text-sm text-zinc-400">Three wins advance. Three losses are out. Eight of each.</p>
+        <h1 className="text-3xl font-semibold tracking-tight">Stages</h1>
+        <p className="mt-1 text-sm text-zinc-400">Swiss stages, then an eight-team playoff. Locked stages stay closed until the host opens them.</p>
       </div>
       {stages.length === 0 ? <p className={`${cardClass} p-4 text-sm text-zinc-400`}>No stages yet.</p> : null}
       <div className="space-y-3">
@@ -33,6 +33,7 @@ export default async function StagesPage() {
                     <h2 className="text-xl font-semibold">
                       {stage.name}
                       {stage.isDemo ? <span className="ml-2 text-xs font-medium text-amber-200">Sample</span> : null}
+                      {!stage.picksOpen ? <span className="ml-2 text-xs font-medium text-zinc-400">Coming soon · locked</span> : null}
                     </h2>
                     <p className="mt-1 text-sm text-zinc-400">
                       <LocalTime iso={stage.startsAt.toISOString()} />
@@ -45,18 +46,28 @@ export default async function StagesPage() {
                     </p>
                   </div>
                   <p className="text-right text-xs text-zinc-400">
-                    {advanced}/8 advanced
-                    <br />
-                    {eliminated} out
+                    {stage.kind === "playoff" ? (
+                      "Playoffs"
+                    ) : (
+                      <>
+                        {advanced}/8 advanced
+                        <br />
+                        {eliminated} out
+                      </>
+                    )}
                   </p>
                 </div>
                 <div className="mt-4 flex gap-2">
                   <Link href={`/stages/${stage.slug}`} className="rounded-xl bg-amber-400 px-3 py-2 text-sm font-semibold text-zinc-950">
-                    Bracket
+                    {stage.kind === "playoff" ? "Bracket" : "Swiss"}
                   </Link>
-                  <Link href={`/picks?stage=${stage.slug}`} className="rounded-xl border border-white/10 px-3 py-2 text-sm font-semibold">
-                    Picks
-                  </Link>
+                  {stage.picksOpen ? (
+                    <Link href={`/picks?stage=${stage.slug}`} className="rounded-xl border border-white/10 px-3 py-2 text-sm font-semibold">
+                      Picks
+                    </Link>
+                  ) : (
+                    <span className="rounded-xl border border-white/10 px-3 py-2 text-sm text-zinc-500">Picks locked</span>
+                  )}
                 </div>
               </article>
             );

@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { getDb } from "@/db";
 import { bracketPicks, matchPicks, matches, placementPicks, stages, stageTeams } from "@/db/schema";
 import { picksFromBracket, projectBracket, type BracketPick } from "@/lib/bracket";
+import { picksFromPlayoff, projectPlayoff, type PlayoffPick } from "@/lib/playoff";
 import { getSessionPlayer } from "@/lib/auth";
 import { earliest, isLocked } from "@/lib/time";
 import { SLOT_LIMITS, type Slot } from "@/lib/types";
@@ -92,7 +93,7 @@ export async function saveBracket(stageId: string, incoming: BracketPick[]) {
   if (!player) return { ok: false as const };
   const db = getDb();
   const [stage] = await db.select().from(stages).where(eq(stages.id, stageId)).limit(1);
-  if (!stage || (player.isDemo && !stage.isDemo)) return { ok: false as const };
+  if (!stage || !stage.picksOpen || (player.isDemo && !stage.isDemo)) return { ok: false as const };
   const enrolled = await db.select().from(stageTeams).where(eq(stageTeams.stageId, stage.id));
   const series = await db.select().from(matches).where(eq(matches.stageId, stage.id));
   const round1 = series.filter((match) => match.round === 1);
@@ -101,8 +102,22 @@ export async function saveBracket(stageId: string, incoming: BracketPick[]) {
     : stage.startsAt;
   if (isLocked(first, new Date())) return { ok: false as const };
   const teams = enrolled.map((row) => ({ teamId: row.teamId, seed: row.seed }));
-  const opening = round1.map((match) => ({ teamAId: match.teamAId, teamBId: match.teamBId }));
-  const clean = picksFromBracket(projectBracket({ teams, round1: opening, picks: Array.isArray(incoming) ? incoming : [] }));
+  const clean =
+    stage.kind === "playoff"
+      ? picksFromPlayoff(
+          projectPlayoff({
+            teams,
+            picks: (Array.isArray(incoming) ? incoming : []) as PlayoffPick[],
+            finalFormat: stage.finalFormat === "bo5" ? "bo5" : "bo3",
+          }).matches,
+        )
+      : picksFromBracket(
+          projectBracket({
+            teams,
+            round1: round1.map((match) => ({ teamAId: match.teamAId, teamBId: match.teamBId })),
+            picks: Array.isArray(incoming) ? incoming : [],
+          }),
+        );
   await db
     .insert(bracketPicks)
     .values({ playerId: player.id, stageId: stage.id, picks: clean, updatedAt: new Date() })
