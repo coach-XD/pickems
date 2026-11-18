@@ -55,6 +55,12 @@ export default async function PlayerPicksPage({
   const projected = projectBracket({ teams, round1: round1.map((match) => ({ teamAId: match.teamAId, teamBId: match.teamBId })), picks });
   const status = bracketStatus(projected.filter((match) => match.winnerId).length, projected.length);
   const statusLabel = status === "complete" ? "Bracket complete" : status === "partial" ? "Bracket in progress" : "No picks yet";
+  const hiddenSentence =
+    status === "complete"
+      ? `Picks hidden until the bracket locks. ${person.displayName} has completed their bracket.`
+      : status === "partial"
+        ? `Picks hidden until the bracket locks. ${person.displayName} hasn't finished their bracket yet.`
+        : `Picks hidden until the bracket locks. ${person.displayName} hasn't started their bracket yet.`;
   const hasResults = bundle.matches.some((match) => match.winnerId);
   const standings = deriveStandings(
     teams,
@@ -103,8 +109,7 @@ export default async function PlayerPicksPage({
           </Link>
           <h1 className="text-2xl font-semibold tracking-tight">{person.displayName}</h1>
           <p className="text-sm text-zinc-400">
-            {visible ? statusLabel : "Picks hidden until lock"}
-            {!visible ? ` · ${statusLabel}` : ""}
+            {visible ? statusLabel : "Picks hidden until the bracket locks"}
           </p>
         </div>
         {visible && hasResults ? (
@@ -131,7 +136,7 @@ export default async function PlayerPicksPage({
       </div>
       {!visible ? (
         <p className={`${cardClass} p-4 text-sm text-zinc-300`}>
-          Picks hidden until lock. {person.displayName}&apos;s bracket is {statusLabel.toLowerCase()}.
+          {hiddenSentence}
         </p>
       ) : stage.kind === "playoff" ? (
         <PlayoffBracket
