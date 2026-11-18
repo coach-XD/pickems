@@ -1,8 +1,9 @@
 import "dotenv/config";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { closeDb, getDb } from "./index";
 import { FUTURE_STAGES } from "./futureStages";
-import { matches, stageTeams, stages, teams } from "./schema";
+import { planRosterSeed, rosterPlayersFromFiles } from "./rosterSeed";
+import { matches, stageTeams, stages, teamPlayers, teams } from "./schema";
 import { STAGE1_END, STAGE1_MATCHES, STAGE1_SLUG, STAGE1_START, STAGE1_TEAMS } from "./stage1";
 
 async function ensureFutureStages(db: ReturnType<typeof getDb>) {
@@ -27,12 +28,55 @@ async function ensureFutureStages(db: ReturnType<typeof getDb>) {
   }
 }
 
+async function ensureRosters(db: ReturnType<typeof getDb>) {
+  const teamRows = await db.select({ id: teams.id, name: teams.name }).from(teams);
+  const idByName = new Map(teamRows.map((team) => [team.name, team.id]));
+  const existing = await db
+    .select({
+      teamName: teams.name,
+      nickname: teamPlayers.nickname,
+      sortOrder: teamPlayers.sortOrder,
+      rating: teamPlayers.rating,
+    })
+    .from(teamPlayers)
+    .innerJoin(teams, eq(teams.id, teamPlayers.teamId));
+  const plan = planRosterSeed(existing, rosterPlayersFromFiles());
+  let inserted = 0;
+  let rated = 0;
+  for (const row of plan.inserts) {
+    const teamId = idByName.get(row.teamName);
+    if (!teamId) {
+      console.log(`No team named ${row.teamName}. Skipping that roster.`);
+      continue;
+    }
+    await db.insert(teamPlayers).values({
+      teamId,
+      nickname: row.nickname,
+      sortOrder: row.sortOrder,
+      rating: row.rating,
+      ratingUpdatedAt: row.rating == null ? null : new Date(),
+    });
+    inserted += 1;
+  }
+  for (const row of plan.ratingUpdates) {
+    const teamId = idByName.get(row.teamName);
+    if (!teamId) continue;
+    await db
+      .update(teamPlayers)
+      .set({ rating: row.rating, ratingUpdatedAt: new Date() })
+      .where(and(eq(teamPlayers.teamId, teamId), eq(teamPlayers.nickname, row.nickname), isNull(teamPlayers.rating)));
+    rated += 1;
+  }
+  console.log(`Rosters: inserted ${inserted}, filled ${rated} empty ratings. Existing nicknames and ratings were left alone.`);
+}
+
 async function main() {
   const db = getDb();
   const [existing] = await db.select({ id: stages.id }).from(stages).where(eq(stages.slug, STAGE1_SLUG)).limit(1);
   if (existing) {
     console.log("Stage 1 already exists. Leaving teams, seeds, and matches alone.");
     await ensureFutureStages(db);
+    await ensureRosters(db);
     return;
   }
 
@@ -94,6 +138,7 @@ async function main() {
 
   console.log("Seeded Stage 1: 16 teams and 8 Round 1 Bo1s. No results.");
   await ensureFutureStages(db);
+  await ensureRosters(db);
 }
 
 main()

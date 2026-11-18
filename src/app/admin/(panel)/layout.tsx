@@ -20,6 +20,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <Link href="/admin/players" className="text-zinc-300">
               Players
             </Link>
+            <Link href="/admin/rosters" className="text-zinc-300">
+              Rosters
+            </Link>
             <Link href="/" className="text-zinc-300">
               Board
             </Link>

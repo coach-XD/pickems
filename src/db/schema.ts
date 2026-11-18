@@ -1,4 +1,4 @@
-import { boolean, integer, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { boolean, integer, jsonb, numeric, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import type { BracketPick } from "@/lib/bracket";
 
 export const seriesFormatEnum = pgEnum("series_format", ["bo1", "bo3"]);
@@ -35,6 +35,15 @@ export const teams = pgTable("teams", {
   region: text("region"),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 }, (table) => [uniqueIndex("teams_name").on(table.name)]);
+
+export const teamPlayers = pgTable("team_players", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  teamId: uuid("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  nickname: text("nickname").notNull(),
+  sortOrder: integer("sort_order").notNull(),
+  rating: numeric("rating", { precision: 4, scale: 2, mode: "number" }),
+  ratingUpdatedAt: timestamp("rating_updated_at", { withTimezone: true, mode: "date" }),
+}, (table) => [uniqueIndex("team_players_team_nickname").on(table.teamId, table.nickname)]);
 
 export const stageTeams = pgTable("stage_teams", {
   id: uuid("id").primaryKey().defaultRandom(),
