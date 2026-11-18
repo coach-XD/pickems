@@ -46,8 +46,22 @@ html {
 *::-webkit-scrollbar-thumb:hover {
   background-color: rgba(244, 244, 245, 0.48);
 }
+*::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
 *::-webkit-scrollbar-corner {
   background: transparent;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 `;
 

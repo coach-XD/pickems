@@ -235,6 +235,44 @@ export async function addTeam(formData: FormData) {
   redirect(`${back}?notice=saved`);
 }
 
+export async function attachTeams(formData: FormData) {
+  await gate();
+  const stageId = String(formData.get("stageId") ?? "");
+  const back = `/admin/stages/${stageId}`;
+  const ids = formData.getAll("teamId").map(String).filter(Boolean);
+  if (ids.length === 0) bounce(back, "team-missing");
+  const rows = ids.map((teamId) => ({ teamId, seed: optionalInt(formData.get(`seed_${teamId}`)) }));
+  if (rows.some((row) => row.seed == null || Number.isNaN(row.seed) || row.seed < 1 || row.seed > 32)) bounce(back, "seed-range");
+  if (new Set(rows.map((row) => row.seed)).size !== rows.length) bounce(back, "seed-dup");
+  const db = getDb();
+  const [stage] = await db.select().from(stages).where(eq(stages.id, stageId)).limit(1);
+  if (!stage) bounce("/admin", "not-found");
+  const known = await db.select({ id: teams.id }).from(teams);
+  const knownIds = new Set(known.map((team) => team.id));
+  if (rows.some((row) => !knownIds.has(row.teamId))) bounce(back, "team-missing");
+  const enrolled = await db.select({ teamId: stageTeams.teamId, seed: stageTeams.seed }).from(stageTeams).where(eq(stageTeams.stageId, stageId));
+  const takenTeams = new Set(enrolled.map((row) => row.teamId));
+  const takenSeeds = new Set(enrolled.map((row) => row.seed));
+  if (rows.some((row) => takenTeams.has(row.teamId))) bounce(back, "team-in");
+  if (rows.some((row) => takenSeeds.has(row.seed!))) bounce(back, "seed-dup");
+  try {
+    await db.insert(stageTeams).values(
+      rows.map((row) => ({
+        stageId,
+        teamId: row.teamId,
+        seed: row.seed!,
+        worldRank: null,
+        otherRank: null,
+      })),
+    );
+  } catch (error) {
+    if (isUniqueViolation(error)) bounce(back, "seed-dup");
+    throw error;
+  }
+  refresh(stage.slug);
+  redirect(`${back}?notice=saved#teams`);
+}
+
 export async function attachTeam(formData: FormData) {
   await gate();
   const stageId = String(formData.get("stageId") ?? "");

@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import {
   addMatch,
   addTeam,
-  attachTeam,
   createSuggestedRound,
   deleteMatch,
   removeTeam,
@@ -18,6 +17,7 @@ import { Flash } from "@/components/Flash";
 import { LocalTime } from "@/components/LocalTime";
 import { SubmitButton } from "@/components/SubmitButton";
 import { UtcDateTimeField } from "@/components/UtcDateTimeField";
+import { BulkTeamAdd } from "@/components/BulkTeamAdd";
 import { LogoField } from "@/components/LogoField";
 import { getStageById, listTeamsOutsideStage, stageBundle, type StageTeamView } from "@/lib/queries";
 import { pairNextRound } from "@/lib/valveSwiss";
@@ -177,37 +177,11 @@ export default async function EditStagePage({
           <SubmitButton className={btnPrimary}>Save teams</SubmitButton>
         </form>
 
-        {outside.length > 0 ? (
-          <form action={attachTeam} className={`${cardClass} space-y-3 p-4`}>
-            <h3 className="font-semibold">Add a team from another stage</h3>
-            <input type="hidden" name="stageId" value={stage.id} />
-            <label className="block">
-              <span className={labelClass}>Team</span>
-              <select name="teamId" required className={selectClass}>
-                {outside.map((team) => (
-                  <option key={team.id} value={team.id}>
-                    {team.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              <label className="block">
-                <span className={labelClass}>Seed</span>
-                <input name="seed" required className={inputClass} />
-              </label>
-              <label className="block">
-                <span className={labelClass}>World</span>
-                <input name="world" className={inputClass} />
-              </label>
-              <label className="block">
-                <span className={labelClass}>Other</span>
-                <input name="other" className={inputClass} />
-              </label>
-            </div>
-            <SubmitButton className={btnGhost}>Add existing team</SubmitButton>
-          </form>
-        ) : null}
+        <BulkTeamAdd
+          stageId={stage.id}
+          teams={outside}
+          nextSeed={(bundle.teams.reduce((max, team) => Math.max(max, team.seed), 0) || 0) + 1}
+        />
 
         <form action={addTeam} className={`${cardClass} space-y-3 p-4`}>
           <h3 className="font-semibold">Add a new team</h3>

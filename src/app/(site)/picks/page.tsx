@@ -130,7 +130,7 @@ function StageTabs({
   currentId: string;
 }) {
   return (
-    <div className="flex gap-2 overflow-x-auto">
+    <div className="no-scrollbar flex gap-2 overflow-x-auto">
       {stages.map((item) => (
         <Link
           key={item.id}

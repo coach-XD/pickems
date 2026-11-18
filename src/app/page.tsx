@@ -58,7 +58,7 @@ export default async function Home({
             </form>
           ) : null}
         </div>
-        <div className="flex gap-2 overflow-x-auto pb-1">
+        <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
           {tabs.map((tab) => (
             <Link
               key={tab.href}
@@ -73,43 +73,49 @@ export default async function Home({
           ))}
         </div>
         {field.length > 0 ? (
-          <div className="flex gap-2 overflow-x-auto pb-1">
+          <div className="flex flex-wrap gap-x-3 gap-y-2">
             {field.map((team) => (
-              <div key={team.teamId} className="shrink-0">
-                <TeamBadge name={team.name} shortName={team.shortName} logoUrl={team.logoUrl} seed={team.seed} compact />
-              </div>
+              <TeamBadge key={team.teamId} name={team.name} shortName={team.shortName} logoUrl={team.logoUrl} seed={team.seed} compact />
             ))}
           </div>
         ) : null}
         {board.length === 0 ? (
           <p className={`${cardClass} p-4 text-sm text-zinc-400`}>Nobody has joined yet. Share the invite link.</p>
         ) : (
-          <ol className="space-y-2">
-            {board.map((row) => {
-              const you = row.playerId === player.id;
-              return (
-                <li
-                  key={row.playerId}
-                  className={cx(
-                    "flex items-center gap-3 rounded-2xl border px-3 py-3",
-                    you ? "border-amber-400/50 bg-amber-400/10" : "border-white/10 bg-zinc-900/70",
-                  )}
-                >
-                  <span className="w-12 shrink-0 font-mono text-sm text-amber-200">{formatRank(row.rank)}</span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-semibold">
+          <div className={`${cardClass} overflow-hidden`}>
+            <div className="grid grid-cols-[2.4rem_minmax(0,1fr)_3.2rem_3.2rem_3.2rem_3.4rem] gap-2 border-b border-white/10 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-zinc-500 sm:grid-cols-[3rem_minmax(0,1fr)_4.5rem_4.5rem_4.5rem_4.5rem] sm:text-xs">
+              <span>Rank</span>
+              <span>Name</span>
+              <span className="text-right">Match</span>
+              <span className="text-right">Maps</span>
+              <span className="text-right">Place</span>
+              <span className="text-right">Total</span>
+            </div>
+            <ol>
+              {board.map((row) => {
+                const you = row.playerId === player.id;
+                return (
+                  <li
+                    key={row.playerId}
+                    className={cx(
+                      "grid grid-cols-[2.4rem_minmax(0,1fr)_3.2rem_3.2rem_3.2rem_3.4rem] items-center gap-2 border-b border-white/5 px-3 py-2.5 last:border-b-0 sm:grid-cols-[3rem_minmax(0,1fr)_4.5rem_4.5rem_4.5rem_4.5rem]",
+                      you && "bg-amber-400/10",
+                    )}
+                  >
+                    <span className="font-mono text-sm text-amber-200">{formatRank(row.rank)}</span>
+                    <span className="truncate font-semibold">
                       {row.name}
                       {you ? <span className="ml-2 text-xs font-medium text-amber-200">you</span> : null}
-                    </p>
-                    <p className="text-xs text-zinc-400">
-                      Match {row.matchPoints} · Maps {row.mapPoints} · Place {row.placementPoints}
-                    </p>
-                  </div>
-                  <p className="text-xl font-semibold tabular-nums">{row.total}</p>
-                </li>
-              );
-            })}
-          </ol>
+                    </span>
+                    <span className="text-right text-sm tabular-nums text-zinc-300">{row.matchPoints}</span>
+                    <span className="text-right text-sm tabular-nums text-zinc-300">{row.mapPoints}</span>
+                    <span className="text-right text-sm tabular-nums text-zinc-300">{row.placementPoints}</span>
+                    <span className="text-right text-base font-semibold tabular-nums">{row.total}</span>
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
         )}
         <p className="text-xs leading-5 text-zinc-500">
           Tied totals share a rank, and the next rank skips.
