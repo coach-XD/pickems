@@ -1,4 +1,5 @@
-import { boolean, integer, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { boolean, integer, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import type { BracketPick } from "@/lib/bracket";
 
 export const seriesFormatEnum = pgEnum("series_format", ["bo1", "bo3"]);
 export const placementSlotEnum = pgEnum("placement_slot", ["perfect", "winless", "advance"]);
@@ -65,6 +66,14 @@ export const placementPicks = pgTable("placement_picks", {
   teamId: uuid("team_id").notNull().references(() => teams.id, { onDelete: "restrict" }),
   slot: placementSlotEnum("slot").notNull(),
 }, (table) => [uniqueIndex("placement_player_stage_team").on(table.playerId, table.stageId, table.teamId)]);
+
+export const bracketPicks = pgTable("bracket_picks", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  playerId: uuid("player_id").notNull().references(() => players.id, { onDelete: "cascade" }),
+  stageId: uuid("stage_id").notNull().references(() => stages.id, { onDelete: "cascade" }),
+  picks: jsonb("picks").$type<BracketPick[]>().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+}, (table) => [uniqueIndex("bracket_picks_player_stage").on(table.playerId, table.stageId)]);
 
 export const matchPicks = pgTable("match_picks", {
   id: uuid("id").primaryKey().defaultRandom(),

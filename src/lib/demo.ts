@@ -1,168 +1,97 @@
-import { formatRank, rankRows, type RankedScore } from "./ranking";
-import { scorePlayerStage } from "./scoring";
-import { deriveStandings, simulateChalkSwiss, type SimulatedMatch, type SimTeam } from "./swiss";
-import type { Slot } from "./types";
+import { autoPlay, scoreBracket, type BracketPick } from "./bracket";
+import { rankRows, type RankedScore } from "./ranking";
+import { deriveStandings } from "./swiss";
+import { initialSwissPairs, type SeededTeam } from "./valveSwiss";
 
 export const DEMO_PIN = "2468";
 export const DEMO_SLUG = "demo-stage";
 
 export type SamplePlayer = {
   name: string;
-  placements: Array<{ teamId: string; slot: Slot }>;
-  picks: Array<{
-    round: number;
-    teamAId: string;
-    teamBId: string;
-    winnerId: string;
-    scoreA: number | null;
-    scoreB: number | null;
-  }>;
+  picks: BracketPick[];
 };
 
 export type SampleBoard = {
-  matches: SimulatedMatch[];
+  matches: Array<BracketPick & { format: "bo1" | "bo3" }>;
   players: SamplePlayer[];
   ranked: RankedScore[];
-  records: Map<string, { wins: number; losses: number; seed: number }>;
 };
 
-function idOf(bySeed: Map<number, string>, seed: number): string {
-  const teamId = bySeed.get(seed);
-  if (!teamId) throw new Error(`Missing seed ${seed}`);
-  return teamId;
+function flipMargins(picks: BracketPick[]): BracketPick[] {
+  return picks.map((pick) => {
+    if (pick.scoreA == null || pick.scoreB == null) return pick;
+    const winnerIsA = pick.winnerId === pick.teamAId;
+    const loser = winnerIsA ? pick.scoreB : pick.scoreA;
+    const flipped = loser === 0 ? 1 : 0;
+    return {
+      ...pick,
+      scoreA: winnerIsA ? 2 : flipped,
+      scoreB: winnerIsA ? flipped : 2,
+    };
+  });
 }
 
-function slate(
-  bySeed: Map<number, string>,
-  perfect: number[],
-  winless: number[],
-  advance: number[],
-): Array<{ teamId: string; slot: Slot }> {
-  return [
-    ...perfect.map((seed) => ({ teamId: idOf(bySeed, seed), slot: "perfect" as const })),
-    ...winless.map((seed) => ({ teamId: idOf(bySeed, seed), slot: "winless" as const })),
-    ...advance.map((seed) => ({ teamId: idOf(bySeed, seed), slot: "advance" as const })),
-  ];
-}
+export function buildSampleBoard(teams: Array<SeededTeam & { name: string }>): SampleBoard {
+  const roster = teams.map(({ teamId, seed }) => ({ teamId, seed }));
+  let bo3Count = 0;
+  const perfect = autoPlay({
+    teams: roster,
+    choose: (match) => {
+      const margin = match.format === "bo3" ? (bo3Count % 2 === 0 ? "2-0" : "2-1") : null;
+      if (match.format === "bo3") bo3Count += 1;
+      return { winnerId: match.teamAId, margin };
+    },
+  });
+  const favorites = perfect;
+  const underdogs = autoPlay({
+    teams: roster,
+    choose: (match) => ({ winnerId: match.teamBId, margin: match.format === "bo3" ? "2-0" : null }),
+  });
 
-function exactPick(match: SimulatedMatch) {
-  return {
-    round: match.round,
-    teamAId: match.teamAId,
-    teamBId: match.teamBId,
-    winnerId: match.winnerId,
-    scoreA: match.format === "bo1" ? null : match.scoreA,
-    scoreB: match.format === "bo1" ? null : match.scoreB,
-  };
-}
-
-function flippedPick(match: SimulatedMatch) {
-  if (match.format === "bo1") return exactPick(match);
-  const winnerIsA = match.winnerId === match.teamAId;
-  const loserScore = winnerIsA ? match.scoreB : match.scoreA;
-  const flipped = loserScore === 0 ? 1 : 0;
-  return {
-    round: match.round,
-    teamAId: match.teamAId,
-    teamBId: match.teamBId,
-    winnerId: match.winnerId,
-    scoreA: winnerIsA ? 2 : flipped,
-    scoreB: winnerIsA ? flipped : 2,
-  };
-}
-
-function loserPick(match: SimulatedMatch) {
-  const winnerId = match.winnerId === match.teamAId ? match.teamBId : match.teamAId;
-  const winnerIsA = winnerId === match.teamAId;
-  return {
-    round: match.round,
-    teamAId: match.teamAId,
-    teamBId: match.teamBId,
-    winnerId,
-    scoreA: match.format === "bo1" ? null : winnerIsA ? 2 : 0,
-    scoreB: match.format === "bo1" ? null : winnerIsA ? 0 : 2,
-  };
-}
-
-/**
- * A finished sample Swiss with eight players. Higher seeds always win, so the
- * records are deterministic: two 3-0s, three 3-1s, three 3-2s, and the mirror
- * on the elimination side. Nova is perfect. Pixel matches every winner and
- * misses every Bo3 score. Blitz and Echo tie.
- */
-export function buildSampleBoard(teams: Array<SimTeam & { name: string }>): SampleBoard {
-  const matches = simulateChalkSwiss(teams);
-  const bySeed = new Map(teams.map((team) => [team.seed, team.teamId]));
-  const seedOf = new Map(teams.map((team) => [team.teamId, team.seed]));
-  const perfect = slate(bySeed, [1, 2], [15, 16], [3, 4, 5, 6, 7, 8]);
-  const bad = slate(bySeed, [15, 16], [1, 2], [9, 10, 11, 12, 13, 14]);
-  const rookSlate = slate(bySeed, [3, 4], [12, 13], [1, 2, 6, 7, 8, 9]);
-  const jettSlate = slate(bySeed, [15, 16], [1, 2], [3, 4, 5, 6, 7, 8]);
-
+  const through = (round: number, source = favorites) => source.filter((pick) => pick.round <= round);
   const players: SamplePlayer[] = [
-    { name: "Nova", placements: perfect, picks: matches.map(exactPick) },
-    { name: "Pixel", placements: perfect, picks: matches.map(flippedPick) },
-    { name: "Rook", placements: rookSlate, picks: matches.map(exactPick) },
-    { name: "Ivy", placements: bad, picks: matches.map(loserPick) },
-    {
-      name: "Blitz",
-      placements: perfect,
-      picks: matches.filter((match) => match.round === 1).map(exactPick),
-    },
-    {
-      name: "Echo",
-      placements: perfect,
-      picks: matches.filter((match) => match.round === 2).map(exactPick),
-    },
-    {
-      name: "Jett",
-      placements: jettSlate,
-      picks: matches.filter((match) => match.round === 1 || match.round === 2).map(exactPick),
-    },
-    {
-      name: "Kite",
-      placements: bad,
-      picks: matches
-        .filter((match) => match.round === 1 && (seedOf.get(match.teamAId) ?? 99) <= 4)
-        .map(exactPick),
-    },
+    { name: "Nova", picks: favorites },
+    { name: "Pixel", picks: flipMargins(favorites) },
+    { name: "Rook", picks: through(3) },
+    { name: "Jett", picks: through(2) },
+    { name: "Blitz", picks: through(1) },
+    { name: "Echo", picks: through(1) },
+    { name: "Ivy", picks: underdogs },
+    { name: "Kite", picks: [] },
   ];
 
-  const standings = deriveStandings(teams, matches);
-  const records = new Map(standings.map((row) => [row.teamId, { wins: row.wins, losses: row.losses, seed: row.seed }]));
-  const matchRows = matches.map((match, index) => ({
-    id: `${match.round}:${match.teamAId}:${match.teamBId}:${index}`,
-    format: match.format,
-    winnerId: match.winnerId,
-    scoreA: match.scoreA,
-    scoreB: match.scoreB,
-    round: match.round,
-    teamAId: match.teamAId,
-    teamBId: match.teamBId,
+  const round1 = initialSwissPairs(roster);
+  const realMatches = favorites.map((pick) => ({
+    round: pick.round,
+    teamAId: pick.teamAId,
+    teamBId: pick.teamBId,
+    format: pick.scoreA == null ? ("bo1" as const) : ("bo3" as const),
+    winnerId: pick.winnerId,
+    scoreA: pick.scoreA ?? (pick.winnerId === pick.teamAId ? 1 : 0),
+    scoreB: pick.scoreB ?? (pick.winnerId === pick.teamBId ? 1 : 0),
   }));
-
+  const records = new Map(
+    deriveStandings(roster, realMatches).map((row) => [row.teamId, { wins: row.wins, losses: row.losses }]),
+  );
   const ranked = rankRows(
-    players.map((player) => {
-      const picks = player.picks.map((pick) => {
-        const match = matchRows.find(
-          (row) => row.round === pick.round && row.teamAId === pick.teamAId && row.teamBId === pick.teamBId,
-        );
-        if (!match) throw new Error(`Missing sample match for ${player.name}`);
-        return { matchId: match.id, winnerId: pick.winnerId, scoreA: pick.scoreA, scoreB: pick.scoreB };
-      });
-      const score = scorePlayerStage({
-        matches: matchRows,
-        matchPicks: picks,
-        placementPicks: player.placements,
-        records,
-      });
-      return { playerId: player.name, name: player.name, ...score };
-    }),
+    players.map((player) => ({
+      playerId: player.name,
+      name: player.name,
+      ...scoreBracket({ teams: roster, round1, picks: player.picks, realMatches, realRecords: records }),
+    })),
   );
 
-  return { matches, players, ranked, records };
-}
-
-export function rankLabel(row: RankedScore): string {
-  return formatRank(row.rank, row.tied);
+  return {
+    matches: realMatches.map((match) => ({
+      round: match.round,
+      teamAId: match.teamAId,
+      teamBId: match.teamBId,
+      winnerId: match.winnerId!,
+      scoreA: match.format === "bo1" ? 1 : match.scoreA,
+      scoreB: match.format === "bo1" ? 0 : match.scoreB,
+      format: match.format,
+    })),
+    players,
+    ranked,
+  };
 }

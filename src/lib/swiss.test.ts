@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildSampleBoard, rankLabel } from "./demo";
+import { buildSampleBoard } from "./demo";
 import {
   deriveStandings,
   seriesFormat,
@@ -108,7 +108,7 @@ describe("pairing suggestions", () => {
 });
 
 describe("sample board", () => {
-  it("separates the map bonus and shares a rank when points and placements match", () => {
+  it("scores the bracket-derived slate and shares ranks when totals match", () => {
     const named = teams.map((team) => ({ ...team, name: `Team ${team.seed}` }));
     const board = buildSampleBoard(named);
     const byName = Object.fromEntries(board.ranked.map((row) => [row.name, row]));
@@ -118,20 +118,12 @@ describe("sample board", () => {
     expect(byName.Nova.placementPoints).toBe(32);
     expect(byName.Pixel.matchPoints).toBe(byName.Nova.matchPoints);
     expect(byName.Pixel.mapPoints).toBe(0);
-    expect(byName.Pixel.placementPoints).toBe(32);
+    expect(byName.Pixel.placementPoints).toBe(byName.Nova.placementPoints);
     expect(byName.Nova.total).toBe(byName.Pixel.total + 13);
-
-    expect(byName.Rook.placementPoints).toBe(10);
-    expect(byName.Rook.correctPlacements).toBe(5);
-    expect(byName.Rook.matchPoints).toBe(33);
-    expect(byName.Rook.mapPoints).toBe(13);
-
     expect(byName.Blitz.total).toBe(byName.Echo.total);
-    expect(byName.Blitz.correctPlacements).toBe(byName.Echo.correctPlacements);
-    expect(rankLabel(byName.Blitz)).toBe("T-4");
-    expect(rankLabel(byName.Echo)).toBe("T-4");
-    expect(byName.Jett.rank).toBe(6);
-    expect(byName.Ivy.total).toBe(0);
-    expect(board.ranked.map((row) => rankLabel(row))).toEqual(["1", "2", "3", "T-4", "T-4", "6", "7", "8"]);
+    expect(byName.Blitz.rank).toBe(byName.Echo.rank);
+    expect(byName.Blitz.tied).toBe(true);
+    expect(byName.Ivy.matchPoints).toBe(0);
+    expect(byName.Kite.total).toBe(0);
   });
 });

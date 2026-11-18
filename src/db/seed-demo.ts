@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { buildSampleBoard, DEMO_PIN, DEMO_SLUG } from "@/lib/demo";
 import { hashPin, nameKey } from "@/lib/secrets";
 import { closeDb, getDb } from "./index";
-import { matchPicks, matches, placementPicks, players, stageTeams, stages, teams } from "./schema";
+import { bracketPicks, matches, players, stageTeams, stages, teams } from "./schema";
 import { STAGE1_TEAMS } from "./stage1";
 
 async function main() {
@@ -56,26 +56,21 @@ async function main() {
     );
 
     const rounds = new Map<number, number>();
-    const inserted: Array<{ id: string; round: number; teamAId: string; teamBId: string }> = [];
     for (const match of board.matches) {
       const index = rounds.get(match.round) ?? 0;
       rounds.set(match.round, index + 1);
       const day = new Date(Date.UTC(2026, 10, 1 + (match.round - 1), 4 + Math.floor(index / 2), 0, 0));
-      const [row] = await tx
-        .insert(matches)
-        .values({
-          stageId: stage.id,
-          round: match.round,
-          teamAId: match.teamAId,
-          teamBId: match.teamBId,
-          format: match.format,
-          scheduledAt: day,
-          winnerId: match.winnerId,
-          scoreA: match.scoreA,
-          scoreB: match.scoreB,
-        })
-        .returning();
-      inserted.push(row);
+      await tx.insert(matches).values({
+        stageId: stage.id,
+        round: match.round,
+        teamAId: match.teamAId,
+        teamBId: match.teamBId,
+        format: match.format,
+        scheduledAt: day,
+        winnerId: match.winnerId,
+        scoreA: match.scoreA,
+        scoreB: match.scoreB,
+      });
     }
 
     for (const player of board.players) {
@@ -95,33 +90,11 @@ async function main() {
         })
         .returning();
 
-      if (player.placements.length) {
-        await tx.insert(placementPicks).values(
-          player.placements.map((pick) => ({
-            playerId: created.id,
-            stageId: stage.id,
-            teamId: pick.teamId,
-            slot: pick.slot,
-          })),
-        );
-      }
-
-      const pickRows = player.picks.flatMap((pick) => {
-        const match = inserted.find(
-          (row) => row.round === pick.round && row.teamAId === pick.teamAId && row.teamBId === pick.teamBId,
-        );
-        if (!match) return [];
-        return [
-          {
-            playerId: created.id,
-            matchId: match.id,
-            winnerId: pick.winnerId,
-            scoreA: pick.scoreA,
-            scoreB: pick.scoreB,
-          },
-        ];
+      await tx.insert(bracketPicks).values({
+        playerId: created.id,
+        stageId: stage.id,
+        picks: player.picks,
       });
-      if (pickRows.length) await tx.insert(matchPicks).values(pickRows);
     }
   });
 

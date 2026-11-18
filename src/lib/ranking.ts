@@ -18,16 +18,14 @@ export function totalPoints(row: Pick<ScoreInput, "matchPoints" | "mapPoints" | 
 }
 
 /**
- * Sort by total points, then by correct placement picks.
- * Equal on both share a rank (competition ranking: 1, T-2, T-2, 4).
- * Display name only stabilises the order inside a tie. It is not a tiebreak.
+ * Sort by total points only. Equal totals share a rank and the next rank skips
+ * (1, 1, 3). Display name only stabilises the order inside a tie.
  */
 export function rankRows(rows: ScoreInput[]): RankedScore[] {
   const sorted = rows
     .map((row) => ({ ...row, total: totalPoints(row) }))
     .sort((a, b) => {
       if (b.total !== a.total) return b.total - a.total;
-      if (b.correctPlacements !== a.correctPlacements) return b.correctPlacements - a.correctPlacements;
       return a.name.localeCompare(b.name);
     });
 
@@ -35,11 +33,7 @@ export function rankRows(rows: ScoreInput[]): RankedScore[] {
   let index = 0;
   while (index < sorted.length) {
     let end = index;
-    while (
-      end + 1 < sorted.length &&
-      sorted[end + 1].total === sorted[index].total &&
-      sorted[end + 1].correctPlacements === sorted[index].correctPlacements
-    ) {
+    while (end + 1 < sorted.length && sorted[end + 1].total === sorted[index].total) {
       end += 1;
     }
     const tied = end > index;
@@ -52,6 +46,6 @@ export function rankRows(rows: ScoreInput[]): RankedScore[] {
   return ranked;
 }
 
-export function formatRank(rank: number, tied: boolean): string {
-  return tied ? `T-${rank}` : String(rank);
+export function formatRank(rank: number): string {
+  return String(rank);
 }

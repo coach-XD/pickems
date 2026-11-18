@@ -16,7 +16,7 @@ import { LocalTime } from "@/components/LocalTime";
 import { SubmitButton } from "@/components/SubmitButton";
 import { UtcDateTimeField } from "@/components/UtcDateTimeField";
 import { getStageById, stageBundle, type StageTeamView } from "@/lib/queries";
-import { suggestPairings } from "@/lib/swiss";
+import { pairNextRound } from "@/lib/valveSwiss";
 import { staggerFrom } from "@/lib/time";
 import { btnDanger, btnGhost, btnPrimary, cardClass, inputClass, labelClass, selectClass } from "@/lib/ui";
 
@@ -40,10 +40,15 @@ export default async function EditStagePage({
   const nextRound = latestRound + 1;
   const suggestion =
     !latestOpen && active.length > 0 && nextRound <= 5
-      ? suggestPairings(
-          bundle.standings,
-          bundle.matches.map((match) => [match.teamAId, match.teamBId]),
-        )
+      ? pairNextRound({
+          teams: bundle.teams.map((team) => ({ teamId: team.teamId, seed: team.seed })),
+          completed: bundle.matches.flatMap((match) =>
+            match.winnerId
+              ? [{ round: match.round, teamAId: match.teamAId, teamBId: match.teamBId, winnerId: match.winnerId }]
+              : [],
+          ),
+          round: nextRound,
+        })
       : null;
   const lastMatch = bundle.matches[bundle.matches.length - 1];
   const suggestStart = lastMatch ? new Date(lastMatch.scheduledAt.getTime() + 24 * 60 * 60 * 1000) : stage.startsAt;
@@ -54,7 +59,7 @@ export default async function EditStagePage({
       <div>
         <h1 className="text-3xl font-semibold">{stage.name}</h1>
         <p className="mt-1 text-sm text-zinc-400">
-          Placement picks lock one hour before the earliest match. With no matches yet, they lock one hour before the start time below.
+          The whole bracket locks one hour before the first Round 1 match. Suggested rounds use the Valve Swiss pairing rules. You still confirm them.
         </p>
       </div>
       <Flash error={query.error} notice={query.notice} />
@@ -180,17 +185,17 @@ export default async function EditStagePage({
             <div>
               <h3 className="font-semibold">Suggested round {nextRound}</h3>
               <p className="mt-1 text-sm text-zinc-400">
-                High seed vs low seed inside each record, skipping rematches when it can. Edit anything before creating it. Advancement and elimination series default to Bo3.
+                Valve pairing for this round: Buchholz, then initial seed, high against low, with the round 4–5 priority table. Edit anything before creating it.
               </p>
             </div>
             <input type="hidden" name="stageId" value={stage.id} />
             <input type="hidden" name="round" value={nextRound} />
-            <input type="hidden" name="count" value={suggestion.pairs.length} />
-            {suggestion.pairs.map((pair, index) => (
+            <input type="hidden" name="count" value={suggestion.length} />
+            {suggestion.map((pair, index) => (
               <fieldset key={`${pair.teamAId}-${pair.teamBId}`} className="space-y-2 rounded-xl border border-white/10 p-3">
                 <label className="flex items-center gap-2 text-sm">
                   <input type="checkbox" name={`include_${index}`} value="1" defaultChecked />
-                  Include · {pair.record}
+                  Include · {pair.wins}-{pair.losses}
                   {pair.rematch ? " · rematch" : ""}
                 </label>
                 <TeamSelect name={`teamA_${index}`} teams={bundle.teams} defaultValue={pair.teamAId} />
@@ -202,16 +207,8 @@ export default async function EditStagePage({
                 <UtcDateTimeField name={`time_${index}`} defaultIso={staggerFrom(suggestStart, index).toISOString()} required />
               </fieldset>
             ))}
-            {suggestion.leftovers.length ? (
-              <p className="text-sm text-amber-200">
-                Unpaired:{" "}
-                {suggestion.leftovers
-                  .map((teamId) => bundle.teams.find((team) => team.teamId === teamId)?.shortName ?? teamId)
-                  .join(", ")}
-              </p>
-            ) : null}
             <label className="flex items-center gap-2 text-sm text-zinc-300">
-              <input type="checkbox" name="allowRematch" value="1" defaultChecked={suggestion.pairs.some((pair) => pair.rematch)} />
+              <input type="checkbox" name="allowRematch" value="1" defaultChecked={suggestion.some((pair) => pair.rematch)} />
               Allow rematch
             </label>
             <SubmitButton className={btnPrimary}>Create round {nextRound}</SubmitButton>
