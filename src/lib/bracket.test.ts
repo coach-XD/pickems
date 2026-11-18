@@ -17,6 +17,16 @@ function decide(picks: BracketPick[], round: number, teamAId: string, teamBId: s
 }
 
 describe("simulated bracket", () => {
+  it("lists round 1 from the best seed down", () => {
+    const round1 = [
+      { teamAId: "8", teamBId: "16" },
+      { teamAId: "3", teamBId: "11" },
+      { teamAId: "1", teamBId: "9" },
+    ];
+    const shown = projectBracket({ teams, round1, picks: [] }).filter((match) => match.round === 1);
+    expect(shown.map((match) => match.teamAId)).toEqual(["1", "3", "8"]);
+  });
+
   it("opens the next round only after the current one is complete", () => {
     const round1 = initialSwissPairs(teams);
     const partial = projectBracket({

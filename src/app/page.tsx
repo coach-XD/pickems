@@ -3,6 +3,7 @@ import { setSampleVisibility } from "@/app/actions/session";
 import { AppShell } from "@/components/AppShell";
 import { Flash } from "@/components/Flash";
 import { demoCookieOn, getSessionPlayer } from "@/lib/auth";
+import { allowDemoData } from "@/lib/logos";
 import { formatRank } from "@/lib/ranking";
 import { TeamBadge } from "@/components/TeamBadge";
 import { getLeaderboard, hasDemoStage, listStageTeams, listStages } from "@/lib/queries";
@@ -17,7 +18,7 @@ export default async function Home({
   const query = await searchParams;
   if (!player) return <Landing />;
 
-  const includeDemo = player.isDemo || (await demoCookieOn());
+  const includeDemo = allowDemoData() && (player.isDemo || (await demoCookieOn()));
   const [stages, demoExists] = await Promise.all([listStages(includeDemo), hasDemoStage()]);
   const realStages = stages.filter((stage) => !stage.isDemo);
   const requested = query.view ?? (player.isDemo ? "demo-stage" : "overall");

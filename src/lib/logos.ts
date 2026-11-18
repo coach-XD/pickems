@@ -1,40 +1,32 @@
 /**
  * Built-in marks live in /public/logos. An admin logo URL wins when it is set.
- * Files sourced from Wikimedia are noted below. The rest are original monograms
- * because no reusable logo file could be found.
+ * FlyQuest stays on the existing SVG. The other files are the trimmed 256px PNGs.
  */
 export const TEAM_LOGOS: Record<string, string> = {
-  "Ninjas in Pyjamas": "/logos/nip.svg",
-  PARIVISION: "/logos/parivision.svg",
+  "Ninjas in Pyjamas": "/logos/nip.png",
+  PARIVISION: "/logos/parivision.png",
   HEROIC: "/logos/heroic.png",
-  FaZe: "/logos/faze.svg",
-  Liquid: "/logos/liquid.svg",
-  "Eternal Fire": "/logos/eternal-fire.svg",
-  "100 Thieves": "/logos/100t.svg",
-  "9z": "/logos/9z.svg",
-  M80: "/logos/m80.svg",
-  DENDELE: "/logos/dendele.svg",
+  FaZe: "/logos/faze.png",
+  Liquid: "/logos/liquid.png",
+  "Eternal Fire": "/logos/eternal-fire.png",
+  "100 Thieves": "/logos/100t.png",
+  "9z": "/logos/9z.png",
+  M80: "/logos/m80.png",
+  DENDELE: "/logos/dendele.png",
   Imperial: "/logos/imperial.png",
-  Wildcard: "/logos/wildcard.svg",
-  "BC.Game": "/logos/bc-game.svg",
+  Wildcard: "/logos/wildcard.png",
+  "BC.Game": "/logos/bc-game.png",
   FlyQuest: "/logos/flyquest.svg",
-  "Chinggis Warriors": "/logos/chinggis.svg",
-  "Lynn Vision": "/logos/lynn-vision.svg",
+  "Chinggis Warriors": "/logos/chinggis.png",
+  "Lynn Vision": "/logos/lynn-vision.png",
 };
-
-/** Teams with an original monogram instead of a sourced logo. */
-export const MISSING_OFFICIAL_LOGOS = [
-  "PARIVISION",
-  "Eternal Fire",
-  "M80",
-  "DENDELE",
-  "Wildcard",
-  "BC.Game",
-  "Chinggis Warriors",
-  "Lynn Vision",
-] as const;
 
 export function resolveLogo(team: { name: string; logoUrl?: string | null }): string | null {
   if (team.logoUrl) return team.logoUrl;
   return TEAM_LOGOS[team.name] ?? null;
+}
+
+/** Demo stages and sample players stay off production unless SHOW_DEMO=1. */
+export function allowDemoData(): boolean {
+  return process.env.NODE_ENV !== "production" || process.env.SHOW_DEMO === "1";
 }

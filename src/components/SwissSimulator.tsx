@@ -151,7 +151,7 @@ export function SwissSimulator({
         </button>
       </div>
       <div className="overflow-x-auto pb-2">
-        <div ref={boardRef} className="relative flex min-w-max gap-8 px-1">
+        <div ref={boardRef} className="relative flex min-w-max gap-3 px-1 md:min-w-0 md:w-full md:justify-between">
           <svg className="pointer-events-none absolute inset-0 h-full w-full">
             {lines.map((line, index) => (
               <path
@@ -171,7 +171,7 @@ export function SwissSimulator({
               return bw - aw || al - bl;
             });
             return (
-              <section key={round} className="relative z-10 w-44 space-y-3">
+              <section key={round} className="relative z-10 w-36 shrink-0 space-y-3 sm:w-40">
                 <div className="flex items-center justify-between gap-2">
                   <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-400">Round {round}</h2>
                   <button
@@ -323,7 +323,7 @@ function ResultColumn({
   const blocks = [...groups, ...extra].filter(([, ids]) => ids.length > 0);
   if (blocks.length === 0) return null;
   return (
-    <section className="relative z-10 w-40 space-y-3">
+    <section className="relative z-10 w-36 shrink-0 space-y-3 sm:w-40">
       <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-400">{title}</h2>
       {blocks.map(([label, ids]) => (
         <div
@@ -379,7 +379,7 @@ function Spot({
     >
       <span
         className={cx(
-          "grid h-10 w-10 place-items-center overflow-hidden rounded-full bg-zinc-800 text-[10px] font-bold text-zinc-100",
+          "grid h-11 w-11 place-items-center overflow-hidden rounded-xl bg-zinc-800 p-0.5 text-[10px] font-bold text-zinc-100",
           selected && "ring-2 ring-emerald-300",
         )}
       >

@@ -3,7 +3,7 @@ import { alias } from "drizzle-orm/pg-core";
 import { getDb } from "@/db";
 import { bracketPicks, matchPicks, matches, placementPicks, players, stageTeams, stages, teams } from "@/db/schema";
 import { scoreBracket } from "./bracket";
-import { resolveLogo } from "./logos";
+import { allowDemoData, resolveLogo } from "./logos";
 import { scorePlayoff, type PlayoffPick } from "./playoff";
 import { rankRows, type RankedScore } from "./ranking";
 import { addStageScores, emptyStageScore } from "./scoring";
@@ -46,10 +46,11 @@ export type MatchView = {
 
 export async function listStages(includeDemo: boolean): Promise<StageRow[]> {
   const rows = await getDb().select().from(stages).orderBy(asc(stages.sortOrder), asc(stages.startsAt));
-  return includeDemo ? rows : rows.filter((stage) => !stage.isDemo);
+  return includeDemo && allowDemoData() ? rows : rows.filter((stage) => !stage.isDemo);
 }
 
 export async function hasDemoStage(): Promise<boolean> {
+  if (!allowDemoData()) return false;
   const [row] = await getDb().select({ id: stages.id }).from(stages).where(eq(stages.isDemo, true)).limit(1);
   return Boolean(row);
 }
@@ -124,7 +125,7 @@ export async function listStageMatches(stageId: string): Promise<MatchView[]> {
 
 export async function listPlayers(includeDemo: boolean): Promise<PlayerRow[]> {
   const rows = await getDb().select().from(players).orderBy(asc(players.displayName));
-  return includeDemo ? rows : rows.filter((player) => !player.isDemo);
+  return includeDemo && allowDemoData() ? rows : rows.filter((player) => !player.isDemo);
 }
 
 export async function getLeaderboard(stageIds: string[], includeDemoPlayers: boolean): Promise<RankedScore[]> {

@@ -4,6 +4,7 @@ import { Countdown } from "@/components/Countdown";
 import { LocalTime } from "@/components/LocalTime";
 import { TeamBadge } from "@/components/TeamBadge";
 import { demoCookieOn, getSessionPlayer } from "@/lib/auth";
+import { allowDemoData } from "@/lib/logos";
 import { getStageBySlug, stageBundle } from "@/lib/queries";
 import { earliest, lockInstant } from "@/lib/time";
 import { cardClass, cx } from "@/lib/ui";
@@ -14,7 +15,7 @@ export default async function StagePage({ params }: { params: Promise<{ slug: st
   const player = await getSessionPlayer();
   if (!player) redirect("/");
   const { slug } = await params;
-  const includeDemo = player.isDemo || (await demoCookieOn());
+  const includeDemo = allowDemoData() && (player.isDemo || (await demoCookieOn()));
   const stage = await getStageBySlug(slug);
   if (!stage || (stage.isDemo && !includeDemo)) notFound();
   const bundle = await stageBundle(stage.id);

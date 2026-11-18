@@ -27,15 +27,15 @@ export function TeamBadge({
   const [broken, setBroken] = useState(false);
   const color = hue(name);
   const src = resolveLogo({ name, logoUrl });
-  const size = compact ? "h-7 w-7 text-[10px]" : "h-9 w-9 text-[11px]";
+  const size = compact ? "h-8 w-8 text-[10px]" : "h-10 w-10 text-[11px]";
   const initials = shortName.slice(0, 3).toUpperCase();
 
   return (
     <span className={`inline-flex min-w-0 items-center gap-2 ${align === "end" ? "flex-row-reverse text-right" : ""}`}>
-      <span className={`relative grid ${size} shrink-0 place-items-center overflow-hidden rounded-lg font-bold`} style={{ background: `hsl(${color} 42% 24%)`, color: `hsl(${color} 85% 86%)` }}>
+      <span className={`relative grid ${size} shrink-0 place-items-center overflow-hidden rounded-xl bg-zinc-800 p-0.5 font-bold`} style={{ color: `hsl(${color} 85% 86%)` }}>
         {src && !broken ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={src} alt="" className="h-full w-full object-contain p-0.5" onError={() => setBroken(true)} />
+          <img src={src} alt="" className="h-full w-full object-contain" onError={() => setBroken(true)} />
         ) : (
           initials
         )}

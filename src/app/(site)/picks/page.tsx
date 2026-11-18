@@ -7,6 +7,7 @@ import { SwissSimulator } from "@/components/SwissSimulator";
 import { getSessionPlayer } from "@/lib/auth";
 import { listBrackets, stageBundle, listStages } from "@/lib/queries";
 import { demoCookieOn } from "@/lib/auth";
+import { allowDemoData } from "@/lib/logos";
 import { earliest, isLocked, lockInstant } from "@/lib/time";
 import { cardClass, cx } from "@/lib/ui";
 import { redirect } from "next/navigation";
@@ -21,7 +22,7 @@ export default async function PicksPage({
   const player = await getSessionPlayer();
   if (!player) redirect("/");
   const query = await searchParams;
-  const includeDemo = player.isDemo || (await demoCookieOn());
+  const includeDemo = allowDemoData() && (player.isDemo || (await demoCookieOn()));
   const stages = await listStages(includeDemo);
   const stage = chooseStage(stages, query.stage, player.isDemo);
   if (!stage) {

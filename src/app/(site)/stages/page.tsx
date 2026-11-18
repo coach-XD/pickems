@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { demoCookieOn, getSessionPlayer } from "@/lib/auth";
+import { allowDemoData } from "@/lib/logos";
 import { listStages, stageBundle } from "@/lib/queries";
 import { cardClass } from "@/lib/ui";
 import { LocalTime } from "@/components/LocalTime";
@@ -10,7 +11,7 @@ export const metadata = { title: "Stages" };
 export default async function StagesPage() {
   const player = await getSessionPlayer();
   if (!player) redirect("/");
-  const includeDemo = player.isDemo || (await demoCookieOn());
+  const includeDemo = allowDemoData() && (player.isDemo || (await demoCookieOn()));
   const stages = await listStages(includeDemo);
 
   return (
