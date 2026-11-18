@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { derivedPlacements, projectBracket } from "@/lib/bracket";
 import { demoCookieOn, getSessionPlayer } from "@/lib/auth";
+import { allowDemoData } from "@/lib/logos";
 import { getLeaderboard, getStageBySlug, listBrackets, stageBundle } from "@/lib/queries";
 import { pairKey } from "@/lib/swiss";
 import { earliest, isLocked } from "@/lib/time";
@@ -14,7 +15,7 @@ export default async function ComparePage({ params }: { params: Promise<{ slug: 
   const player = await getSessionPlayer();
   if (!player) redirect("/");
   const { slug } = await params;
-  const includeDemo = player.isDemo || (await demoCookieOn());
+  const includeDemo = allowDemoData() && (player.isDemo || (await demoCookieOn()));
   const stage = await getStageBySlug(slug);
   if (!stage || (stage.isDemo && !includeDemo)) notFound();
 

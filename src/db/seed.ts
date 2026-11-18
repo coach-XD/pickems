@@ -1,14 +1,38 @@
 import "dotenv/config";
 import { eq } from "drizzle-orm";
 import { closeDb, getDb } from "./index";
+import { FUTURE_STAGES } from "./futureStages";
 import { matches, stageTeams, stages, teams } from "./schema";
 import { STAGE1_END, STAGE1_MATCHES, STAGE1_SLUG, STAGE1_START, STAGE1_TEAMS } from "./stage1";
+
+async function ensureFutureStages(db: ReturnType<typeof getDb>) {
+  for (const stage of FUTURE_STAGES) {
+    const [existing] = await db.select({ id: stages.id }).from(stages).where(eq(stages.slug, stage.slug)).limit(1);
+    if (existing) {
+      console.log(`${stage.name} already exists. Leaving it alone.`);
+      continue;
+    }
+    await db.insert(stages).values({
+      slug: stage.slug,
+      name: stage.name,
+      startsAt: new Date(stage.startsAt),
+      endsAt: new Date(stage.endsAt),
+      sortOrder: stage.sortOrder,
+      isDemo: false,
+      picksOpen: stage.picksOpen,
+      kind: stage.kind,
+      finalFormat: stage.finalFormat,
+    });
+    console.log(`Added ${stage.name} with picks locked and no teams.`);
+  }
+}
 
 async function main() {
   const db = getDb();
   const [existing] = await db.select({ id: stages.id }).from(stages).where(eq(stages.slug, STAGE1_SLUG)).limit(1);
   if (existing) {
     console.log("Stage 1 already exists. Leaving teams, seeds, and matches alone.");
+    await ensureFutureStages(db);
     return;
   }
 
@@ -40,6 +64,9 @@ async function main() {
         endsAt: new Date(STAGE1_END),
         sortOrder: 1,
         isDemo: false,
+        picksOpen: true,
+        kind: "swiss",
+        finalFormat: "bo3",
       })
       .returning();
 
@@ -66,6 +93,7 @@ async function main() {
   });
 
   console.log("Seeded Stage 1: 16 teams and 8 Round 1 Bo1s. No results.");
+  await ensureFutureStages(db);
 }
 
 main()

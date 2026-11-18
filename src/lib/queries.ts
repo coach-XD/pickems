@@ -3,6 +3,8 @@ import { alias } from "drizzle-orm/pg-core";
 import { getDb } from "@/db";
 import { bracketPicks, matchPicks, matches, placementPicks, players, stageTeams, stages, teams } from "@/db/schema";
 import { scoreBracket } from "./bracket";
+import { allowDemoData, resolveLogo } from "./logos";
+import { scorePlayoff, type PlayoffPick } from "./playoff";
 import { rankRows, type RankedScore } from "./ranking";
 import { addStageScores, emptyStageScore } from "./scoring";
 import { deriveStandings, groupByRecord } from "./swiss";
@@ -44,10 +46,11 @@ export type MatchView = {
 
 export async function listStages(includeDemo: boolean): Promise<StageRow[]> {
   const rows = await getDb().select().from(stages).orderBy(asc(stages.sortOrder), asc(stages.startsAt));
-  return includeDemo ? rows : rows.filter((stage) => !stage.isDemo);
+  return includeDemo && allowDemoData() ? rows : rows.filter((stage) => !stage.isDemo);
 }
 
 export async function hasDemoStage(): Promise<boolean> {
+  if (!allowDemoData()) return false;
   const [row] = await getDb().select({ id: stages.id }).from(stages).where(eq(stages.isDemo, true)).limit(1);
   return Boolean(row);
 }
@@ -63,7 +66,7 @@ export async function getStageById(id: string): Promise<StageRow | null> {
 }
 
 export async function listStageTeams(stageId: string): Promise<StageTeamView[]> {
-  return getDb()
+  const rows = await getDb()
     .select({
       stageTeamId: stageTeams.id,
       teamId: teams.id,
@@ -79,6 +82,11 @@ export async function listStageTeams(stageId: string): Promise<StageTeamView[]> 
     .innerJoin(teams, eq(teams.id, stageTeams.teamId))
     .where(eq(stageTeams.stageId, stageId))
     .orderBy(asc(stageTeams.seed));
+  return rows.map((team) => withLogo(team));
+}
+
+export function withLogo<T extends { name: string; logoUrl: string | null }>(team: T): T {
+  return { ...team, logoUrl: resolveLogo(team) };
 }
 
 export async function listStageMatches(stageId: string): Promise<MatchView[]> {
@@ -108,12 +116,16 @@ export async function listStageMatches(stageId: string): Promise<MatchView[]> {
     .innerJoin(teamB, eq(teamB.id, matches.teamBId))
     .where(eq(matches.stageId, stageId))
     .orderBy(asc(matches.round), asc(matches.scheduledAt), asc(matches.createdAt));
-  return rows;
+  return rows.map((match) => ({
+    ...match,
+    teamALogo: resolveLogo({ name: match.teamAName, logoUrl: match.teamALogo }),
+    teamBLogo: resolveLogo({ name: match.teamBName, logoUrl: match.teamBLogo }),
+  }));
 }
 
 export async function listPlayers(includeDemo: boolean): Promise<PlayerRow[]> {
   const rows = await getDb().select().from(players).orderBy(asc(players.displayName));
-  return includeDemo ? rows : rows.filter((player) => !player.isDemo);
+  return includeDemo && allowDemoData() ? rows : rows.filter((player) => !player.isDemo);
 }
 
 export async function getLeaderboard(stageIds: string[], includeDemoPlayers: boolean): Promise<RankedScore[]> {
@@ -129,6 +141,8 @@ export async function getLeaderboard(stageIds: string[], includeDemoPlayers: boo
   }
 
   const db = getDb();
+  const stageMeta = await db.select().from(stages).where(inArray(stages.id, stageIds));
+  const kindById = new Map(stageMeta.map((stage) => [stage.id, stage]));
   const matchRows = await db.select().from(matches).where(inArray(matches.stageId, stageIds));
   const brackets = await db.select().from(bracketPicks).where(inArray(bracketPicks.stageId, stageIds));
   const enrolled = await db.select().from(stageTeams).where(inArray(stageTeams.stageId, stageIds));
@@ -158,6 +172,21 @@ export async function getLeaderboard(stageIds: string[], includeDemoPlayers: boo
       const total = stageIds.reduce((sum, stageId) => {
         const stageMatches = matchRows.filter((match) => match.stageId === stageId);
         const bracket = brackets.find((row) => row.playerId === player.id && row.stageId === stageId);
+        const meta = kindById.get(stageId);
+        const enrolledTeams = enrolled.filter((row) => row.stageId === stageId).map((row) => ({ teamId: row.teamId, seed: row.seed }));
+        if (meta?.kind === "playoff") {
+          const score = scorePlayoff({
+            teams: enrolledTeams,
+            picks: (bracket?.picks ?? []) as PlayoffPick[],
+            finalFormat: meta.finalFormat === "bo5" ? "bo5" : "bo3",
+            realMatches: stageMatches.map((match) => ({
+              teamAId: match.teamAId,
+              teamBId: match.teamBId,
+              winnerId: match.winnerId,
+            })),
+          });
+          return addStageScores(sum, score);
+        }
         const score = scoreBracket({
           teams: enrolled.filter((row) => row.stageId === stageId).map((row) => ({ teamId: row.teamId, seed: row.seed })),
           round1: stageMatches.filter((match) => match.round === 1).map((match) => ({ teamAId: match.teamAId, teamBId: match.teamBId })),

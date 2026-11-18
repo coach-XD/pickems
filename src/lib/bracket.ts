@@ -70,7 +70,14 @@ export function projectBracket(input: {
   const picks = new Map(input.picks.map((pick) => [pickKey(pick.round, pick.teamAId, pick.teamBId), pick]));
   const matches: BracketMatch[] = [];
   const completed: Array<{ round: number; teamAId: string; teamBId: string; winnerId: string }> = [];
-  let upcoming = input.round1.length > 0 ? input.round1 : initialSwissPairs(input.teams);
+  const seedOf = new Map(input.teams.map((team) => [team.teamId, team.seed]));
+  const opening = (input.round1.length > 0 ? input.round1 : initialSwissPairs(input.teams)).map((pair) => {
+    const seedA = seedOf.get(pair.teamAId) ?? 999;
+    const seedB = seedOf.get(pair.teamBId) ?? 999;
+    return seedA <= seedB ? pair : { teamAId: pair.teamBId, teamBId: pair.teamAId };
+  });
+  opening.sort((a, b) => (seedOf.get(a.teamAId) ?? 999) - (seedOf.get(b.teamAId) ?? 999));
+  let upcoming = opening;
 
   for (let round = 1; round <= 5; round += 1) {
     if (upcoming.length === 0) break;

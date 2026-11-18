@@ -114,6 +114,8 @@ Change a seed, rank, or logo from **Admin → Stage 1 → Teams** and save. Swap
 
 Picks are made on a Swiss bracket simulator. Clicking winners generates the next round with Valve's pairing rules. The 3-0, 0-3, and advance slots are read from that bracket. A match scores only when the predicted teams are the teams the admin actually schedules. The whole bracket locks one hour before the first Round 1 match.
 
+Stage 2 (28 Nov–1 Dec), Stage 3 (2–5 Dec), and the playoffs (through 13 Dec) are seeded locked, with no teams. An admin opens each one with “Open for picks”. Playoff points default to 2 / 3 / 5 for quarterfinal, semifinal, and champion in `src/lib/scoringConfig.ts`. Built-in team marks live in `public/logos`. An admin logo URL replaces the built-in file.
+
 Records and the advanced/eliminated pools are derived from results. Later rounds are not pre-seeded. Admin can add them by hand or confirm a suggested pairing from the same Valve engine. Series that can advance or eliminate a team default to Bo3; the others default to Bo1.
 
 ## Scripts

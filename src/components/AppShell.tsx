@@ -20,9 +20,11 @@ export function AppShell({
   children: ReactNode;
 }) {
   const pathname = usePathname();
+  const wide = pathname.startsWith("/picks");
+  const width = wide ? "max-w-[1440px]" : "max-w-3xl";
   return (
     <div className="min-h-full">
-      <header className="mx-auto flex w-full max-w-3xl items-center justify-between gap-3 px-4 pt-4">
+      <header className={`mx-auto flex w-full items-center justify-between gap-3 px-4 pt-4 ${width}`}>
         <Link href="/" className="min-w-0">
           <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-300/90">Singapore 2026</p>
           <p className="truncate text-lg font-semibold tracking-tight">Major Pick&apos;em</p>
@@ -36,9 +38,9 @@ export function AppShell({
           </form>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-3xl px-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] pt-4">{children}</main>
+      <main className={`mx-auto w-full px-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] pt-4 ${width}`}>{children}</main>
       <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-white/10 bg-zinc-950/90 backdrop-blur">
-        <div className="mx-auto grid max-w-3xl grid-cols-3 pb-[env(safe-area-inset-bottom)]">
+        <div className={`mx-auto grid grid-cols-3 pb-[env(safe-area-inset-bottom)] ${width}`}>
           {links.map((link) => {
             const active = link.match(pathname);
             return (
