@@ -7,8 +7,12 @@ export const PROJECTED_MARGIN = 1.05;
 export const ODDSPAPI_SPORT_ID = 17;
 export const DEFAULT_TOURNAMENT_ID = "51216";
 
-/** One fixtures call plus one odds call per Round 1 match. */
-export const CALLS_PER_REFRESH = 9;
+/**
+ * One tournament odds call every 6 hours. 24 / 6 × 31 days is about 124
+ * requests a month, under the free-tier cap of 250.
+ */
+export const CALLS_PER_REFRESH = 1;
+export const DEFAULT_BOOKMAKER = "bet365";
 export const MONTHLY_REQUEST_BUDGET = 250;
 export const STALE_MS = 6 * 60 * 60 * 1000;
 
@@ -40,23 +44,33 @@ export function normalizeTeamName(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
+const STRIP_TOKENS = ["esports", "gaming", "clan", "team", "gg", "cs"];
+
+/** Drop bookmaker suffixes and prefixes such as "eSports", "Gaming", and "Team". */
+export function coreTeamName(name: string): string {
+  let current = normalizeTeamName(name);
+  let changed = true;
+  while (changed && current.length > 0) {
+    changed = false;
+    for (const token of STRIP_TOKENS) {
+      if (current.length <= token.length) continue;
+      if (current.endsWith(token)) {
+        current = current.slice(0, -token.length);
+        changed = true;
+      } else if (current.startsWith(token)) {
+        current = current.slice(token.length);
+        changed = true;
+      }
+    }
+  }
+  return current;
+}
+
 const ALIASES: Record<string, string[]> = {
-  bcgamegosh: ["gosh", "bcgame", "bc.game", "bc game"],
-  parivision: ["pvision", "pari"],
-  "100thieves": ["100t", "100 thieves"],
-  ninjasinpyjamas: ["nip", "ninjas in pyjamas"],
-  heroic: ["heroic"],
-  faze: ["faze"],
-  liquid: ["liquid", "team liquid"],
-  eternalfire: ["eternal fire", "eternalfire"],
-  "9z": ["9z"],
-  m80: ["m80"],
-  dendele: ["dendele"],
-  imperial: ["imperial"],
-  wildcard: ["wildcard"],
-  flyquest: ["flyquest"],
-  chinggiswarriors: ["chinggis warriors", "chinggis"],
-  lynnvision: ["lynn vision", "lynnvision"],
+  bcgamegosh: ["gosh", "bcgame", "bc.game"],
+  parivision: ["pvision"],
+  ninjasinpyjamas: ["nip"],
+  "100thieves": ["100t"],
 };
 
 export function displayOdds(input: {
@@ -76,10 +90,10 @@ export function displayOdds(input: {
 }
 
 export function namesMatch(ourName: string, externalName: string): boolean {
-  const ours = normalizeTeamName(ourName);
-  const external = normalizeTeamName(externalName);
+  const ours = coreTeamName(ourName);
+  const external = coreTeamName(externalName);
   if (!ours || !external) return false;
   if (ours === external) return true;
   const aliases = ALIASES[ours] ?? [];
-  return aliases.some((alias) => normalizeTeamName(alias) === external);
+  return aliases.some((alias) => coreTeamName(alias) === external || normalizeTeamName(alias) === external);
 }

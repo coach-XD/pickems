@@ -1,90 +1,44 @@
 import { namesMatch } from "./price";
 
-export type FixtureSide = { name: string };
-export type BookPrice = { bookmaker: string; price1: number; price2: number; rotated: boolean };
-
-const WINNER_MARKETS = new Set(["171", "178077", "1"]);
-
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" ? (value as Record<string, unknown>) : null;
 }
 
-function priceOf(node: unknown): number | null {
+function suspended(node: Record<string, unknown> | null): boolean {
+  if (!node) return false;
+  if (node.suspended === true || node.active === false) return true;
+  const status = typeof node.status === "string" ? node.status.toLowerCase() : "";
+  return status === "suspended" || status === "inactive";
+}
+
+/**
+ * Match-winner prices from one tournament odds row.
+ * Market 171 is the match winner. Outcome 171 is participant 1 and 172 is participant 2.
+ * The decimal price is players["0"].price. Missing, inactive, or suspended markets are skipped.
+ */
+export function winnerPrices(fixture: unknown, bookmaker: string): { price1: number; price2: number } | null {
+  const row = asRecord(fixture);
+  const books = asRecord(row?.bookmakerOdds);
+  const book = asRecord(books?.[bookmaker]);
+  if (!book || suspended(book)) return null;
+  const markets = asRecord(book.markets);
+  const market = asRecord(markets?.["171"]);
+  if (!market || suspended(market)) return null;
+  const outcomes = asRecord(market.outcomes);
+  const price1 = outcomePrice(outcomes?.["171"]);
+  const price2 = outcomePrice(outcomes?.["172"]);
+  if (price1 == null || price2 == null) return null;
+  return { price1, price2 };
+}
+
+function outcomePrice(node: unknown): number | null {
   const record = asRecord(node);
-  if (!record) return null;
-  if (typeof record.price === "number" && record.price > 1) return record.price;
+  if (!record || suspended(record)) return null;
   const players = asRecord(record.players);
   const slot = players?.["0"];
-  if (Array.isArray(slot)) {
-    const snaps = slot.filter((item) => {
-      const row = asRecord(item);
-      return row && row.active !== false && typeof row.price === "number" && row.price > 1;
-    });
-    const last = snaps.at(-1);
-    const price = asRecord(last)?.price;
-    return typeof price === "number" ? price : null;
-  }
   const direct = asRecord(slot);
-  if (direct && typeof direct.price === "number" && direct.price > 1) return direct.price;
-  return null;
-}
-
-function twoPrices(market: unknown): [number, number] | null {
-  const record = asRecord(market);
-  const outcomes = asRecord(record?.outcomes) ?? record;
-  if (!outcomes) return null;
-  const prices = Object.values(outcomes)
-    .map((outcome) => priceOf(outcome))
-    .filter((price): price is number => price != null);
-  if (prices.length !== 2) return null;
-  return [prices[0], prices[1]];
-}
-
-function booksOf(payload: unknown): Record<string, unknown> {
-  const root = asRecord(payload) ?? {};
-  return asRecord(root.bookmakers) ?? asRecord(root.bookmakerOdds) ?? root;
-}
-
-/** Pinnacle's two-way price when it exists, otherwise the book with the smallest overround. */
-export function chooseBookPrice(payload: unknown): BookPrice | null {
-  const books = booksOf(payload);
-  const parsed: BookPrice[] = [];
-  for (const [slug, node] of Object.entries(books)) {
-    const book = asRecord(node);
-    if (!book) continue;
-    const markets = asRecord(book.markets) ?? book;
-    let chosen: [number, number] | null = null;
-    for (const id of WINNER_MARKETS) {
-      const prices = twoPrices(markets[id]);
-      if (prices) {
-        chosen = prices;
-        break;
-      }
-    }
-    if (!chosen) {
-      for (const market of Object.values(markets)) {
-        const prices = twoPrices(market);
-        if (prices) {
-          chosen = prices;
-          break;
-        }
-      }
-    }
-    if (!chosen) continue;
-    parsed.push({
-      bookmaker: slug,
-      price1: chosen[0],
-      price2: chosen[1],
-      rotated: book.participantsRotated === true,
-    });
-  }
-  const pinnacle = parsed.find((book) => book.bookmaker.toLowerCase() === "pinnacle");
-  if (pinnacle) return pinnacle;
-  return parsed.sort((a, b) => overround(a) - overround(b))[0] ?? null;
-}
-
-function overround(book: BookPrice): number {
-  return 1 / book.price1 + 1 / book.price2;
+  if (!direct || suspended(direct)) return null;
+  return typeof direct.price === "number" && direct.price > 1 ? direct.price : null;
 }
 
 export type ListedFixture = {

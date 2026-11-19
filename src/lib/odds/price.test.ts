@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { chooseBookPrice, matchOurTeams } from "./parse";
+import { STAGE1_TEAMS } from "@/db/stage1";
+import { matchOurTeams, winnerPrices } from "./parse";
 import { eloWinProbability, fairPercents, namesMatch, projectedPrice } from "./price";
 
 describe("projected VRS prices", () => {
@@ -17,15 +18,49 @@ describe("book prices", () => {
     expect(fairPercents(1.44, 2.9)).toEqual({ a: 67, b: 33 });
   });
 
-  it("prefers Pinnacle over a shorter-priced book", () => {
-    const chosen = chooseBookPrice({
-      bookmakers: {
-        bet365: { markets: { "171": { outcomes: { a: { price: 1.4 }, b: { price: 2.8 } } } } },
-        pinnacle: { markets: { "171": { outcomes: { a: { price: 1.44 }, b: { price: 2.9 } } } } },
+  it("reads the bet365 match-winner market and skips an inactive one", () => {
+    const fixture = {
+      bookmakerOdds: {
+        bet365: {
+          markets: {
+            "171": {
+              suspended: false,
+              outcomes: {
+                "171": { active: true, players: { "0": { price: 1.37, active: true } } },
+                "172": { active: true, players: { "0": { price: 2.75, active: true } } },
+              },
+            },
+          },
+        },
       },
-    });
-    expect(chosen?.bookmaker).toBe("pinnacle");
-    expect(chosen?.price1).toBe(1.44);
+    };
+    expect(winnerPrices(fixture, "bet365")).toEqual({ price1: 1.37, price2: 2.75 });
+    const inactive = structuredClone(fixture);
+    inactive.bookmakerOdds.bet365.markets["171"].outcomes["171"].active = false;
+    expect(winnerPrices(inactive, "bet365")).toBeNull();
+    const suspended = structuredClone(fixture);
+    suspended.bookmakerOdds.bet365.markets["171"].suspended = true;
+    expect(winnerPrices(suspended, "bet365")).toBeNull();
+  });
+
+  it("matches every posted PGL Singapore Round 1 name to Stage 1", () => {
+    const pairs = [
+      ["Heroic", "Imperial eSports", "HEROIC", "Imperial"],
+      ["9Z Team", "Lynn Vision Gaming", "9z", "Lynn Vision"],
+      ["Ninjas In Pyjamas", "M80", "Ninjas in Pyjamas", "M80"],
+      ["100 Thieves", "Chinggis Warriors", "100 Thieves", "Chinggis Warriors"],
+      ["Parivision", "Dendele CS", "PARIVISION", "DENDELE"],
+      ["Team Liquid", "BC.Game eSports", "Liquid", "BC.Game (GOSH)"],
+      ["Eternal Fire", "Flyquest", "Eternal Fire", "FlyQuest"],
+      ["Faze Clan", "Wildcard Gaming", "FaZe", "Wildcard"],
+    ] as const;
+    for (const [left, right, ourLeft, ourRight] of pairs) {
+      const matched = matchOurTeams({ fixtureId: left, participant1Name: left, participant2Name: right }, STAGE1_TEAMS);
+      expect(matched?.team1.name).toBe(ourLeft);
+      expect(matched?.team2.name).toBe(ourRight);
+    }
+    expect(namesMatch("BC.Game (GOSH)", "GOSH")).toBe(true);
+    expect(namesMatch("PARIVISION", "PVISION")).toBe(true);
   });
 
   it("matches GOSH, PVISION, and 100T to our names", () => {

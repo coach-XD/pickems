@@ -88,6 +88,7 @@ export const matchOdds = pgTable("match_odds", {
 export const oddsFetchLock = pgTable("odds_fetch_lock", {
   id: integer("id").primaryKey(),
   lockedUntil: timestamp("locked_until", { withTimezone: true, mode: "date" }).notNull(),
+  lastAttemptAt: timestamp("last_attempt_at", { withTimezone: true, mode: "date" }).notNull(),
   monthKey: text("month_key").notNull().default(""),
   requestCount: integer("request_count").notNull().default(0),
 });

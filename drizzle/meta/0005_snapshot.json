@@ -1,5 +1,5 @@
 {
-  "id": "f2dd599a-db05-456f-b451-05015c798825",
+  "id": "324393e1-7416-4785-9ed6-f785d55edd3a",
   "prevId": "7464ac7f-76ce-47a0-a541-d340d9eb7da9",
   "version": "7",
   "dialect": "postgresql",
@@ -459,6 +459,12 @@
         },
         "locked_until": {
           "name": "locked_until",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_attempt_at": {
+          "name": "last_attempt_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true
