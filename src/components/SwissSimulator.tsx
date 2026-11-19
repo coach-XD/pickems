@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { resolveLogo } from "@/lib/logos";
 import { saveBracket } from "@/app/actions/picks";
 import { derivedPlacements, picksFromBracket, projectBracket, type BracketPick, type RealSeries } from "@/lib/bracket";
+import { displayOdds } from "@/lib/odds/price";
 import { pairKey } from "@/lib/swiss";
 import { ResetControl, SaveStatus } from "@/components/SaveState";
 import { cx } from "@/lib/ui";
@@ -15,6 +16,7 @@ type SimTeam = {
   logoUrl: string | null;
   seed: number;
   worldRank?: number | null;
+  vrsPoints?: number | null;
 };
 
 export function SwissSimulator({
@@ -25,6 +27,7 @@ export function SwissSimulator({
   round1,
   initialPicks,
   realMatches,
+  realOdds = [],
 }: {
   stageId: string;
   locked: boolean;
@@ -33,6 +36,7 @@ export function SwissSimulator({
   round1: Array<{ teamAId: string; teamBId: string }>;
   initialPicks: BracketPick[];
   realMatches: RealSeries[];
+  realOdds?: Array<{ teamAId: string; teamBId: string; oddsA: number; oddsB: number }>;
 }) {
   const [picks, setPicks] = useState(initialPicks);
   const [failed, setFailed] = useState(false);
@@ -43,6 +47,11 @@ export function SwissSimulator({
     [teams, round1, picks],
   );
   const placements = useMemo(() => derivedPlacements(teams, matches), [teams, matches]);
+  const oddsByPair = useMemo(() => {
+    const map = new Map<string, { teamAId: string; teamBId: string; oddsA: number; oddsB: number }>();
+    for (const row of realOdds) map.set(pairKey(row.teamAId, row.teamBId), row);
+    return map;
+  }, [realOdds]);
   const realByPair = useMemo(() => {
     const map = new Map<string, RealSeries>();
     for (const match of realMatches) map.set(pairKey(match.teamAId, match.teamBId), match);
@@ -178,6 +187,11 @@ export function SwissSimulator({
                                 onClick={() => chooseWinner(match, match.teamBId)}
                               />
                             </div>
+                            <OddsRow
+                              teamA={teamById.get(match.teamAId)}
+                              teamB={teamById.get(match.teamBId)}
+                              stored={oddsByPair.get(pairKey(match.teamAId, match.teamBId))}
+                            />
                             {match.format === "bo3" && match.winnerId ? (
                               <div className="mt-0.5 grid grid-cols-2 gap-0.5">
                                 {(["2-0", "2-1"] as const).map((option) => (
@@ -222,7 +236,48 @@ export function SwissSimulator({
           />
         </div>
       </div>
+      <p className="text-[10px] text-zinc-500">Odds for fun · don&apos;t affect scoring. PROJ marks a price with no book line.</p>
     </div>
+  );
+}
+
+function OddsRow({
+  teamA,
+  teamB,
+  stored,
+}: {
+  teamA?: SimTeam;
+  teamB?: SimTeam;
+  stored?: { teamAId: string; teamBId: string; oddsA: number; oddsB: number };
+}) {
+  if (!teamA || !teamB) return null;
+  const sameOrder = !stored || stored.teamAId === teamA.teamId;
+  const line = displayOdds({
+    pointsA: teamA.vrsPoints,
+    pointsB: teamB.vrsPoints,
+    realA: stored ? (sameOrder ? stored.oddsA : stored.oddsB) : null,
+    realB: stored ? (sameOrder ? stored.oddsB : stored.oddsA) : null,
+  });
+  if (!line) return null;
+  return (
+    <div className="mt-1 flex items-center justify-center gap-1">
+      <OddsPill odds={line.oddsA} percent={line.percentA} favorite={line.oddsA <= line.oddsB} />
+      <OddsPill odds={line.oddsB} percent={line.percentB} favorite={line.oddsB < line.oddsA} />
+      {line.projected ? <span className="text-[8px] font-semibold uppercase tracking-wide text-zinc-500">Proj</span> : null}
+    </div>
+  );
+}
+
+function OddsPill({ odds, percent, favorite }: { odds: number; percent: number; favorite: boolean }) {
+  return (
+    <span
+      className={cx(
+        "rounded-full px-1.5 py-0.5 text-[9px] font-semibold tabular-nums",
+        favorite ? "bg-amber-400/20 text-amber-100" : "bg-white/5 text-zinc-400",
+      )}
+    >
+      {odds.toFixed(2)} · {percent}%
+    </span>
   );
 }
 

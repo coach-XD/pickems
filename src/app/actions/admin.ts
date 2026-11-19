@@ -4,7 +4,7 @@ import { and, eq, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getDb } from "@/db";
-import { matches, players, stages, stageTeams, teamPlayers, teams } from "@/db/schema";
+import { matchOdds, matches, players, stages, stageTeams, teamPlayers, teams } from "@/db/schema";
 import { isAdmin } from "@/lib/auth";
 import { parseIso } from "@/lib/time";
 import type { SeriesFormat } from "@/lib/types";
@@ -496,6 +496,42 @@ export async function setResult(formData: FormData) {
   }
   const [stage] = await db.select().from(stages).where(eq(stages.id, match.stageId)).limit(1);
   refresh(stage?.slug);
+  redirect(`${back}?notice=saved#m-${match.id}`);
+}
+
+export async function saveMatchOdds(formData: FormData) {
+  await gate();
+  const matchId = String(formData.get("matchId") ?? "");
+  const db = getDb();
+  const [match] = await db.select().from(matches).where(eq(matches.id, matchId)).limit(1);
+  if (!match) bounce("/admin", "not-found");
+  const back = `/admin/stages/${match.stageId}`;
+  const rawA = String(formData.get("oddsA") ?? "").trim();
+  const rawB = String(formData.get("oddsB") ?? "").trim();
+  if (!rawA && !rawB) {
+    await db.delete(matchOdds).where(eq(matchOdds.matchId, match.id));
+    refresh();
+    redirect(`${back}?notice=saved#m-${match.id}`);
+  }
+  const oddsA = Number(rawA);
+  const oddsB = Number(rawB);
+  if (!(oddsA > 1) || !(oddsB > 1) || oddsA > 100 || oddsB > 100) bounce(back, "match-result");
+  await db
+    .insert(matchOdds)
+    .values({
+      matchId: match.id,
+      team1Odds: oddsA,
+      team2Odds: oddsB,
+      bookmaker: "admin",
+      source: "admin",
+      manual: true,
+      fetchedAt: new Date(),
+    })
+    .onConflictDoUpdate({
+      target: matchOdds.matchId,
+      set: { team1Odds: oddsA, team2Odds: oddsB, bookmaker: "admin", source: "admin", manual: true, fetchedAt: new Date() },
+    });
+  refresh();
   redirect(`${back}?notice=saved#m-${match.id}`);
 }
 

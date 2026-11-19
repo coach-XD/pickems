@@ -15,6 +15,7 @@ export const TEAM_LOGOS: Record<string, string> = {
   DENDELE: "/logos/dendele.png",
   Imperial: "/logos/imperial.png",
   Wildcard: "/logos/wildcard.png",
+  "BC.Game (GOSH)": "/logos/bc-game.png",
   "BC.Game": "/logos/bc-game.png",
   FlyQuest: "/logos/flyquest.svg",
   "Chinggis Warriors": "/logos/chinggis.png",

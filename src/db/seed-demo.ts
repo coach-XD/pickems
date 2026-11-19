@@ -51,6 +51,7 @@ async function main() {
           seed: team.seed,
           worldRank: source.worldRank,
           otherRank: source.otherRank,
+          vrsPoints: source.vrsPoints,
         };
       }),
     );

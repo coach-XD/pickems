@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "@/app/actions/session";
+import { LiveRefresh } from "@/components/LiveRefresh";
 import { cx } from "@/lib/ui";
 
 const links = [
@@ -49,6 +50,7 @@ export function AppShell({
             })}
           </nav>
           <div className="ml-auto flex shrink-0 items-center gap-2">
+            <LiveRefresh />
             <span className="hidden max-w-28 truncate rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-zinc-300 sm:inline">{name}</span>
             <form action={signOut}>
               <button type="submit" className="text-[11px] text-zinc-500 underline-offset-2 hover:text-zinc-200 hover:underline">
