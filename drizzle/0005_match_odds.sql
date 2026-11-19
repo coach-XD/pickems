@@ -18,6 +18,8 @@ CREATE TABLE "odds_fetch_lock" (
 );
 --> statement-breakpoint
 ALTER TABLE "stage_teams" ADD COLUMN "vrs_points" integer;--> statement-breakpoint
+ALTER TABLE "teams" ADD COLUMN "oddspapi_id" integer;--> statement-breakpoint
 ALTER TABLE "match_odds" ADD CONSTRAINT "match_odds_match_id_matches_id_fk" FOREIGN KEY ("match_id") REFERENCES "public"."matches"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "match_odds_match" ON "match_odds" USING btree ("match_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "teams_oddspapi_id" ON "teams" USING btree ("oddspapi_id");--> statement-breakpoint
 INSERT INTO "odds_fetch_lock" ("id", "locked_until", "last_attempt_at", "month_key", "request_count") VALUES (1, '1970-01-01T00:00:00Z', '1970-01-01T00:00:00Z', '', 0);

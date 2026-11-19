@@ -34,8 +34,12 @@ export const teams = pgTable("teams", {
   shortName: text("short_name").notNull(),
   logoUrl: text("logo_url"),
   region: text("region"),
+  oddspapiId: integer("oddspapi_id"),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
-}, (table) => [uniqueIndex("teams_name").on(table.name)]);
+}, (table) => [
+  uniqueIndex("teams_name").on(table.name),
+  uniqueIndex("teams_oddspapi_id").on(table.oddspapiId),
+]);
 
 export const teamPlayers = pgTable("team_players", {
   id: uuid("id").primaryKey().defaultRandom(),

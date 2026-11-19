@@ -1,5 +1,5 @@
 {
-  "id": "324393e1-7416-4785-9ed6-f785d55edd3a",
+  "id": "134f5f86-1439-43e7-99a5-b7b5c6d5e5e1",
   "prevId": "7464ac7f-76ce-47a0-a541-d340d9eb7da9",
   "version": "7",
   "dialect": "postgresql",
@@ -1029,6 +1029,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "oddspapi_id": {
+          "name": "oddspapi_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -1043,6 +1049,21 @@
           "columns": [
             {
               "expression": "name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "teams_oddspapi_id": {
+          "name": "teams_oddspapi_id",
+          "columns": [
+            {
+              "expression": "oddspapi_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"

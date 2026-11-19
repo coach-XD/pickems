@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { STAGE1_TEAMS } from "@/db/stage1";
-import { matchOurTeams, winnerPrices } from "./parse";
+import sample from "./fixtures/pgl-singapore-round1.json";
+import { listFixtureParticipants, listFixtures, listOddsRows, mapParticipants, matchOurTeams, priceMappedFixtures, winnerPrices } from "./parse";
 import { eloWinProbability, fairPercents, namesMatch, projectedPrice } from "./price";
 
 describe("projected VRS prices", () => {
@@ -61,6 +62,36 @@ describe("book prices", () => {
     }
     expect(namesMatch("BC.Game (GOSH)", "GOSH")).toBe(true);
     expect(namesMatch("PARIVISION", "PVISION")).toBe(true);
+  });
+
+  it("prices the live unibet rows by participant id", () => {
+    expect(listFixtures(sample.odds)).toEqual([]);
+    expect(listOddsRows(sample.odds)).toHaveLength(8);
+    for (const row of sample.odds) {
+      expect(row).not.toHaveProperty("participant1Name");
+      expect(row).not.toHaveProperty("participant2Name");
+    }
+    const teams = STAGE1_TEAMS.map((team) => ({ id: team.name, name: team.name }));
+    const mapping = mapParticipants(listFixtureParticipants(sample.fixtures), teams);
+    expect(mapping.size).toBe(16);
+    expect(priceMappedFixtures(sample.odds, "unibet", new Map())).toEqual([]);
+    expect(
+      priceMappedFixtures(sample.odds, "unibet", mapping).map((row) => ({
+        team1: row.team1.name,
+        team2: row.team2.name,
+        price1: row.price1,
+        price2: row.price2,
+      })),
+    ).toEqual([
+      { team1: "HEROIC", team2: "Imperial", price1: 1.41, price2: 2.8 },
+      { team1: "9z", team2: "Lynn Vision", price1: 1.52, price2: 2.48 },
+      { team1: "Ninjas in Pyjamas", team2: "M80", price1: 1.6, price2: 2.28 },
+      { team1: "100 Thieves", team2: "Chinggis Warriors", price1: 1.11, price2: 5.75 },
+      { team1: "PARIVISION", team2: "DENDELE", price1: 1.43, price2: 2.75 },
+      { team1: "Liquid", team2: "BC.Game (GOSH)", price1: 1.7, price2: 2.1 },
+      { team1: "Eternal Fire", team2: "FlyQuest", price1: 1.73, price2: 2.06 },
+      { team1: "FaZe", team2: "Wildcard", price1: 1.45, price2: 2.65 },
+    ]);
   });
 
   it("matches GOSH, PVISION, and 100T to our names", () => {

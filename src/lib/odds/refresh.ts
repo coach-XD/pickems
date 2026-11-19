@@ -1,17 +1,25 @@
 import { eq } from "drizzle-orm";
 import { after } from "next/server";
 import { getDb, getSql } from "@/db";
-import { matchOdds, matches, stageTeams, teams } from "@/db/schema";
-import { listFixtures, matchOurTeams, winnerPrices } from "./parse";
-import { CALLS_PER_REFRESH, DEFAULT_BOOKMAKER, DEFAULT_TOURNAMENT_ID, MONTHLY_REQUEST_BUDGET, STALE_MS } from "./price";
+import { matchOdds, matches, teams } from "@/db/schema";
+import { listFixtureParticipants, listOddsRows, mapParticipants, winnerPrices } from "./parse";
+import {
+  DEFAULT_BOOKMAKER,
+  DEFAULT_TOURNAMENT_ID,
+  MAX_CALLS_PER_REFRESH,
+  MONTHLY_REQUEST_BUDGET,
+  ODDSPAPI_SPORT_ID,
+  STALE_MS,
+} from "./price";
 
 const BASE = "https://api.oddspapi.io/v4";
 
 /**
- * One bet365 tournament call every 6 hours. 24 / 6 × 31 days is about 124
- * requests a month, under the 250 free-tier cap. The gap is last_attempt_at,
- * so a 404 or a name miss still waits 6 hours. Prices are display-only.
- * Pinnacle does not post these fixtures; bet365 is the default book.
+ * One unibet tournament call every 6 hours, about 124 requests a month.
+ * /fixtures is a second call, and only while a participant id is unmapped.
+ * The counter stores the calls actually made. A 404 is no lines, and
+ * last_attempt_at still moves so an empty refresh waits 6 hours.
+ * The bookmaker query accepts exactly one book. Prices are display-only.
  */
 export async function maybeRefreshOdds(): Promise<void> {
   if (!process.env.ODDSPAPI_API_KEY) return;
@@ -19,12 +27,13 @@ export async function maybeRefreshOdds(): Promise<void> {
     if (!(await isStale())) return;
     if (!(await claimLock())) return;
     after(async () => {
+      const usage = { calls: 0 };
       try {
-        await pullOdds(process.env.ODDSPAPI_API_KEY!);
+        await pullOdds(process.env.ODDSPAPI_API_KEY!, usage);
       } catch (error) {
         console.error("OddsPapi refresh failed", error);
       } finally {
-        await finishAttempt(CALLS_PER_REFRESH);
+        await finishAttempt(usage.calls);
       }
     });
   } catch (error) {
@@ -55,7 +64,7 @@ async function claimLock(): Promise<boolean> {
           when month_key = to_char(now() at time zone 'utc', 'YYYY-MM') then request_count
           else 0
         end
-      ) + ${CALLS_PER_REFRESH} <= ${MONTHLY_REQUEST_BUDGET}
+      ) + ${MAX_CALLS_PER_REFRESH} <= ${MONTHLY_REQUEST_BUDGET}
     returning id
   `;
   return rows.length > 0;
@@ -81,9 +90,10 @@ async function apiGet(key: string, path: string, params: Record<string, string>)
   return response.json();
 }
 
-async function pullOdds(key: string): Promise<void> {
+async function pullOdds(key: string, usage: { calls: number }): Promise<void> {
   const tournamentId = process.env.ODDSPAPI_TOURNAMENT_ID || DEFAULT_TOURNAMENT_ID;
   const bookmaker = process.env.ODDSPAPI_BOOKMAKER || DEFAULT_BOOKMAKER;
+  usage.calls += 1;
   const payload = await apiGet(key, "/odds-by-tournaments", {
     bookmaker,
     tournamentIds: tournamentId,
@@ -92,39 +102,52 @@ async function pullOdds(key: string): Promise<void> {
     console.info("OddsPapi has no lines posted for this tournament.");
     return;
   }
-  const wrapped = payload && typeof payload === "object" && Array.isArray((payload as { fixtures?: unknown }).fixtures)
-    ? (payload as { fixtures: unknown[] }).fixtures
-    : null;
-  const fixtures = Array.isArray(payload) ? payload : wrapped ?? [];
+  const rows = listOddsRows(payload);
   const db = getDb();
   const roster = await db
-    .select({ teamId: teams.id, name: teams.name })
-    .from(stageTeams)
-    .innerJoin(teams, eq(teams.id, stageTeams.teamId));
-  const uniqueTeams = [...new Map(roster.map((team) => [team.teamId, team])).values()];
+    .select({ id: teams.id, name: teams.name, oddspapiId: teams.oddspapiId })
+    .from(teams);
+  const mapping = new Map(roster.flatMap((team) => (team.oddspapiId == null ? [] : [[team.oddspapiId, team] as const])));
+  const needed = new Set(rows.flatMap((row) => [row.participant1Id, row.participant2Id]));
+  const missing = [...needed].filter((id) => !mapping.has(id));
+  if (missing.length > 0) {
+    usage.calls += 1;
+    const fixturesPayload = await apiGet(key, "/fixtures", {
+      sportId: String(ODDSPAPI_SPORT_ID),
+      tournamentId,
+    });
+    if (fixturesPayload == null) {
+      console.info("OddsPapi fixtures are not posted for this tournament.");
+    } else {
+      const discovered = mapParticipants(listFixtureParticipants(fixturesPayload), roster);
+      for (const [participantId, team] of discovered) {
+        if (team.oddspapiId != null || mapping.has(participantId)) continue;
+        await db.update(teams).set({ oddspapiId: participantId }).where(eq(teams.id, team.id));
+        mapping.set(participantId, { ...team, oddspapiId: participantId });
+      }
+    }
+  }
+
   const series = await db.select().from(matches);
   const manual = new Set(
     (await db.select({ matchId: matchOdds.matchId }).from(matchOdds).where(eq(matchOdds.manual, true))).map((row) => row.matchId),
   );
-
-  for (const row of fixtures) {
-    const [fixture] = listFixtures([row]);
-    if (!fixture) continue;
-    const prices = winnerPrices(row, bookmaker);
-    if (!prices) continue;
-    const paired = matchOurTeams(fixture, uniqueTeams);
-    if (!paired) {
-      console.info(`OddsPapi unmatched fixture ${fixture.participant1Name} vs ${fixture.participant2Name}`);
+  for (const row of rows) {
+    const prices = winnerPrices(row.raw, bookmaker);
+    const side1 = mapping.get(row.participant1Id);
+    const side2 = mapping.get(row.participant2Id);
+    if (!prices || !side1 || !side2) {
+      if (!side1 || !side2) console.info(`OddsPapi unmatched participant ids ${row.participant1Id} vs ${row.participant2Id}`);
       continue;
     }
     const match = series.find((seriesMatch) => {
       const ids = new Set([seriesMatch.teamAId, seriesMatch.teamBId]);
-      return ids.has(paired.team1.teamId) && ids.has(paired.team2.teamId);
+      return ids.has(side1.id) && ids.has(side2.id);
     });
     if (!match || manual.has(match.id)) continue;
     const oddsFor = new Map<string, number>([
-      [paired.team1.teamId, prices.price1],
-      [paired.team2.teamId, prices.price2],
+      [side1.id, prices.price1],
+      [side2.id, prices.price2],
     ]);
     const team1Odds = oddsFor.get(match.teamAId);
     const team2Odds = oddsFor.get(match.teamBId);

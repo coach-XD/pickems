@@ -47,6 +47,109 @@ export type ListedFixture = {
   participant2Name: string;
 };
 
+export type OddsRow = {
+  fixtureId: string;
+  participant1Id: number;
+  participant2Id: number;
+  raw: unknown;
+};
+
+export type NamedParticipant = {
+  participantId: number;
+  name: string;
+};
+
+function numberId(value: unknown): number | null {
+  if (typeof value === "number" && Number.isInteger(value) && value > 0) return value;
+  if (typeof value === "string" && /^\d+$/.test(value)) return Number(value);
+  return null;
+}
+
+function rowsOf(payload: unknown): unknown[] {
+  if (Array.isArray(payload)) return payload;
+  const root = asRecord(payload);
+  if (Array.isArray(root?.fixtures)) return root.fixtures;
+  return [];
+}
+
+/**
+ * Tournament odds rows have participant ids and no names.
+ * Names come from /fixtures and are stored as teams.oddspapi_id.
+ */
+export function listOddsRows(payload: unknown): OddsRow[] {
+  if (!Array.isArray(payload)) return [];
+  return payload.flatMap((row) => {
+    const fixture = asRecord(row);
+    if (!fixture) return [];
+    const participant1Id = numberId(fixture.participant1Id);
+    const participant2Id = numberId(fixture.participant2Id);
+    if (participant1Id == null || participant2Id == null) return [];
+    return [{ fixtureId: String(fixture.fixtureId ?? ""), participant1Id, participant2Id, raw: row }];
+  });
+}
+
+/** Participant ids and names from a /fixtures payload. */
+export function listFixtureParticipants(payload: unknown): NamedParticipant[] {
+  const found = new Map<number, string>();
+  for (const row of rowsOf(payload)) {
+    const fixture = asRecord(row);
+    if (!fixture) continue;
+    const sides = [
+      [fixture.participant1Id, fixture.participant1Name],
+      [fixture.participant2Id, fixture.participant2Name],
+    ] as const;
+    for (const [idValue, nameValue] of sides) {
+      const participantId = numberId(idValue);
+      const name = typeof nameValue === "string" ? nameValue.trim() : "";
+      if (participantId == null || !name || found.has(participantId)) continue;
+      found.set(participantId, name);
+    }
+  }
+  return [...found].map(([participantId, name]) => ({ participantId, name }));
+}
+
+/** Name-match fixture participants onto our teams. One team keeps one participant id. */
+export function mapParticipants<T extends { id: string; name: string }>(
+  participants: NamedParticipant[],
+  teams: T[],
+): Map<number, T> {
+  const byParticipant = new Map<number, T>();
+  const usedTeams = new Set<string>();
+  for (const participant of participants) {
+    if (byParticipant.has(participant.participantId)) continue;
+    const team = teams.find((candidate) => !usedTeams.has(candidate.id) && namesMatch(candidate.name, participant.name));
+    if (!team) continue;
+    byParticipant.set(participant.participantId, team);
+    usedTeams.add(team.id);
+  }
+  return byParticipant;
+}
+
+export type PricedFixture<T> = {
+  fixtureId: string;
+  team1: T;
+  team2: T;
+  price1: number;
+  price2: number;
+};
+
+/** Apply a saved participant-id map to odds rows that do not carry names. */
+export function priceMappedFixtures<T extends { id: string; name: string }>(
+  oddsPayload: unknown,
+  bookmaker: string,
+  mapping: Map<number, T>,
+): PricedFixture<T>[] {
+  const priced: PricedFixture<T>[] = [];
+  for (const row of listOddsRows(oddsPayload)) {
+    const prices = winnerPrices(row.raw, bookmaker);
+    const team1 = mapping.get(row.participant1Id);
+    const team2 = mapping.get(row.participant2Id);
+    if (!prices || !team1 || !team2 || team1.id === team2.id) continue;
+    priced.push({ fixtureId: row.fixtureId, team1, team2, price1: prices.price1, price2: prices.price2 });
+  }
+  return priced;
+}
+
 export function listFixtures(payload: unknown): ListedFixture[] {
   const root = asRecord(payload);
   const rows = Array.isArray(payload) ? payload : Array.isArray(root?.fixtures) ? root.fixtures : [];

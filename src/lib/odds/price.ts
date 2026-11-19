@@ -8,11 +8,14 @@ export const ODDSPAPI_SPORT_ID = 17;
 export const DEFAULT_TOURNAMENT_ID = "51216";
 
 /**
- * One tournament odds call every 6 hours. 24 / 6 × 31 days is about 124
- * requests a month, under the free-tier cap of 250.
+ * Steady state is one unibet call every 6 hours. 24 / 6 × 31 days is about
+ * 124 requests a month, under the free-tier cap of 250. A second /fixtures
+ * call runs only while a participant id is unmapped. The lock reserves that
+ * worst case of 2; the counter stores the calls actually made.
  */
 export const CALLS_PER_REFRESH = 1;
-export const DEFAULT_BOOKMAKER = "bet365";
+export const MAX_CALLS_PER_REFRESH = 2;
+export const DEFAULT_BOOKMAKER = "unibet";
 export const MONTHLY_REQUEST_BUDGET = 250;
 export const STALE_MS = 6 * 60 * 60 * 1000;
 
