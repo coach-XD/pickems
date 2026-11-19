@@ -121,6 +121,7 @@ async function main() {
         seed: team.seed,
         worldRank: team.worldRank,
         otherRank: team.otherRank,
+        vrsPoints: team.vrsPoints,
       })),
     );
 

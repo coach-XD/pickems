@@ -34,8 +34,12 @@ export const teams = pgTable("teams", {
   shortName: text("short_name").notNull(),
   logoUrl: text("logo_url"),
   region: text("region"),
+  oddspapiId: integer("oddspapi_id"),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
-}, (table) => [uniqueIndex("teams_name").on(table.name)]);
+}, (table) => [
+  uniqueIndex("teams_name").on(table.name),
+  uniqueIndex("teams_oddspapi_id").on(table.oddspapiId),
+]);
 
 export const teamPlayers = pgTable("team_players", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -53,6 +57,7 @@ export const stageTeams = pgTable("stage_teams", {
   seed: integer("seed").notNull(),
   worldRank: integer("world_rank"),
   otherRank: integer("other_rank"),
+  vrsPoints: integer("vrs_points"),
 }, (table) => [
   uniqueIndex("stage_teams_stage_team").on(table.stageId, table.teamId),
   uniqueIndex("stage_teams_stage_seed").on(table.stageId, table.seed),
@@ -70,6 +75,26 @@ export const matches = pgTable("matches", {
   scoreA: integer("score_a"),
   scoreB: integer("score_b"),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+});
+
+export const matchOdds = pgTable("match_odds", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  matchId: uuid("match_id").notNull().references(() => matches.id, { onDelete: "cascade" }),
+  team1Odds: numeric("team1_odds", { precision: 6, scale: 3, mode: "number" }).notNull(),
+  team2Odds: numeric("team2_odds", { precision: 6, scale: 3, mode: "number" }).notNull(),
+  bookmaker: text("bookmaker").notNull(),
+  source: text("source").notNull(),
+  manual: boolean("manual").notNull().default(false),
+  fetchedAt: timestamp("fetched_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+}, (table) => [uniqueIndex("match_odds_match").on(table.matchId)]);
+
+/** One row. Holds the in-flight fetch lock and the monthly OddsPapi request count. */
+export const oddsFetchLock = pgTable("odds_fetch_lock", {
+  id: integer("id").primaryKey(),
+  lockedUntil: timestamp("locked_until", { withTimezone: true, mode: "date" }).notNull(),
+  lastAttemptAt: timestamp("last_attempt_at", { withTimezone: true, mode: "date" }).notNull(),
+  monthKey: text("month_key").notNull().default(""),
+  requestCount: integer("request_count").notNull().default(0),
 });
 
 export const placementPicks = pgTable("placement_picks", {

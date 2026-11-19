@@ -6,9 +6,10 @@ import { PicksFrame } from "@/components/TeamRoster";
 import { PlayoffBracket } from "@/components/PlayoffBracket";
 import { SwissSimulator } from "@/components/SwissSimulator";
 import { getSessionPlayer } from "@/lib/auth";
-import { listBrackets, listStageRoster, stageBundle, listStages } from "@/lib/queries";
+import { listBrackets, listStageOdds, listStageRoster, stageBundle, listStages } from "@/lib/queries";
 import { demoCookieOn } from "@/lib/auth";
 import { allowDemoData } from "@/lib/logos";
+import { maybeRefreshOdds } from "@/lib/odds/refresh";
 import { earliest, isLocked, lockInstant } from "@/lib/time";
 import { cardClass, cx } from "@/lib/ui";
 import { redirect } from "next/navigation";
@@ -40,6 +41,8 @@ export default async function PicksPage({
   }
 
   const bundle = await stageBundle(stage.id);
+  void maybeRefreshOdds();
+  const odds = await listStageOdds(stage.id);
   const roster = await listStageRoster(stage.id);
   const brackets = await listBrackets(stage.id);
   const mine = brackets.find((row) => row.playerId === player.id);
@@ -104,8 +107,10 @@ export default async function PicksPage({
           logoUrl: team.logoUrl,
           seed: team.seed,
           worldRank: team.worldRank,
+          vrsPoints: team.vrsPoints,
         }))}
         round1={round1.map((match) => ({ teamAId: match.teamAId, teamBId: match.teamBId }))}
+        realOdds={odds}
         initialPicks={mine?.picks ?? []}
         realMatches={bundle.matches.map((match) => ({
           round: match.round,

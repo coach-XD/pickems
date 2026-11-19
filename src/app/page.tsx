@@ -6,7 +6,9 @@ import { demoCookieOn, getSessionPlayer } from "@/lib/auth";
 import { allowDemoData } from "@/lib/logos";
 import { formatRank } from "@/lib/ranking";
 import { TeamBadge } from "@/components/TeamBadge";
-import { getLeaderboard, hasDemoStage, listStageTeams, listStages } from "@/lib/queries";
+import { maybeRefreshOdds } from "@/lib/odds/refresh";
+import { displayOdds } from "@/lib/odds/price";
+import { getLeaderboard, hasDemoStage, listStageOdds, listStageMatches, listStageTeams, listStages } from "@/lib/queries";
 import { btnGhost, cardClass, cx } from "@/lib/ui";
 
 export default async function Home({
@@ -27,7 +29,11 @@ export default async function Home({
   const stageIds = selected ? [selected.id] : realStages.map((stage) => stage.id);
   const board = await getLeaderboard(stageIds, Boolean(selected?.isDemo));
   const logoStageId = selected?.id ?? realStages[0]?.id;
+  void maybeRefreshOdds();
   const field = logoStageId ? await listStageTeams(logoStageId) : [];
+  const round1 = logoStageId ? (await listStageMatches(logoStageId)).filter((match) => match.round === 1) : [];
+  const odds = logoStageId ? await listStageOdds(logoStageId) : [];
+  const teamById = new Map(field.map((team) => [team.teamId, team]));
   const tabs = [
     { href: "/?view=overall", label: "Overall", active: !selected },
     ...stages.map((stage) => ({
@@ -79,6 +85,34 @@ export default async function Home({
             ))}
           </div>
         ) : null}
+        {round1.length > 0 ? (
+          <div className="space-y-1">
+            <div className="flex flex-wrap gap-2">
+              {round1.map((match) => {
+                const stored = odds.find((row) => row.matchId === match.id);
+                const teamA = teamById.get(match.teamAId);
+                const teamB = teamById.get(match.teamBId);
+                const line = displayOdds({
+                  pointsA: teamA?.vrsPoints,
+                  pointsB: teamB?.vrsPoints,
+                  realA: stored?.oddsA,
+                  realB: stored?.oddsB,
+                });
+                return (
+                  <span key={match.id} className="inline-flex items-center gap-1 rounded-full border border-white/10 px-2 py-1 text-[11px]">
+                    <span className="font-semibold text-zinc-200">{match.teamAShort}</span>
+                    {line ? <OddsBit odds={line.oddsA} percent={line.percentA} favorite={line.oddsA <= line.oddsB} /> : null}
+                    <span className="text-zinc-600">vs</span>
+                    <span className="font-semibold text-zinc-200">{match.teamBShort}</span>
+                    {line ? <OddsBit odds={line.oddsB} percent={line.percentB} favorite={line.oddsB < line.oddsA} /> : <span className="text-zinc-600">odds TBA</span>}
+                    {line?.projected ? <span className="text-[9px] font-semibold uppercase text-zinc-500">Proj</span> : null}
+                  </span>
+                );
+              })}
+            </div>
+            <p className="text-[10px] text-zinc-500">Odds for fun · don&apos;t affect scoring</p>
+          </div>
+        ) : null}
         {board.length === 0 ? (
           <p className={`${cardClass} p-4 text-sm text-zinc-400`}>Nobody has joined yet. Share the invite link.</p>
         ) : (
@@ -123,6 +157,14 @@ export default async function Home({
         </p>
       </div>
     </AppShell>
+  );
+}
+
+function OddsBit({ odds, percent, favorite }: { odds: number; percent: number; favorite: boolean }) {
+  return (
+    <span className={favorite ? "rounded-full bg-amber-400/20 px-1.5 font-semibold text-amber-100" : "rounded-full bg-white/5 px-1.5 text-zinc-400"}>
+      {odds.toFixed(2)} · {percent}%
+    </span>
   );
 }
 

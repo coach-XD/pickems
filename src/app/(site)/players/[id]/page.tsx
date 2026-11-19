@@ -7,7 +7,8 @@ import { demoCookieOn, getSessionPlayer, isAdmin } from "@/lib/auth";
 import { allowDemoData } from "@/lib/logos";
 import { bracketStatus, canViewPicks } from "@/lib/pickVisibility";
 import { scorePlayoff } from "@/lib/playoff";
-import { listBrackets, listPlayers, listStages, stageBundle } from "@/lib/queries";
+import { maybeRefreshOdds } from "@/lib/odds/refresh";
+import { listBrackets, listPlayers, listStageOdds, listStages, stageBundle } from "@/lib/queries";
 import { deriveStandings } from "@/lib/swiss";
 import { earliest, isLocked } from "@/lib/time";
 import { cardClass, cx } from "@/lib/ui";
@@ -39,6 +40,8 @@ export default async function PlayerPicksPage({
   }
 
   const bundle = await stageBundle(stage.id);
+  void maybeRefreshOdds();
+  const odds = await listStageOdds(stage.id);
   const brackets = await listBrackets(stage.id);
   const stored = brackets.find((row) => row.playerId === person.id);
   const picks = stored?.picks ?? [];
@@ -165,7 +168,9 @@ export default async function PlayerPicksPage({
             logoUrl: team.logoUrl,
             seed: team.seed,
             worldRank: team.worldRank,
+            vrsPoints: team.vrsPoints,
           }))}
+          realOdds={odds}
           round1={round1.map((match) => ({ teamAId: match.teamAId, teamBId: match.teamBId }))}
           initialPicks={picks}
           realMatches={bundle.matches.map((match) => ({

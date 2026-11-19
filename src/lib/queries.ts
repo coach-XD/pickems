@@ -1,7 +1,7 @@
 import { asc, eq, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { getDb } from "@/db";
-import { bracketPicks, matchPicks, matches, placementPicks, players, stageTeams, stages, teamPlayers, teams } from "@/db/schema";
+import { bracketPicks, matchOdds, matchPicks, matches, placementPicks, players, stageTeams, stages, teamPlayers, teams } from "@/db/schema";
 import { scoreBracket } from "./bracket";
 import { allowDemoData, resolveLogo } from "./logos";
 import { scorePlayoff, type PlayoffPick } from "./playoff";
@@ -23,6 +23,7 @@ export type StageTeamView = {
   seed: number;
   worldRank: number | null;
   otherRank: number | null;
+  vrsPoints: number | null;
   storedLogoUrl?: string | null;
 };
 
@@ -78,6 +79,7 @@ export async function listStageTeams(stageId: string): Promise<StageTeamView[]> 
       seed: stageTeams.seed,
       worldRank: stageTeams.worldRank,
       otherRank: stageTeams.otherRank,
+      vrsPoints: stageTeams.vrsPoints,
     })
     .from(stageTeams)
     .innerJoin(teams, eq(teams.id, stageTeams.teamId))
@@ -300,6 +302,31 @@ export async function getLeaderboard(stageIds: string[], includeDemoPlayers: boo
       return { playerId: player.id, name: player.displayName, ...total };
     }),
   );
+}
+
+export type StoredOdds = {
+  matchId: string;
+  teamAId: string;
+  teamBId: string;
+  oddsA: number;
+  oddsB: number;
+  manual: boolean;
+};
+
+export async function listStageOdds(stageId: string): Promise<StoredOdds[]> {
+  const rows = await getDb()
+    .select({
+      matchId: matchOdds.matchId,
+      teamAId: matches.teamAId,
+      teamBId: matches.teamBId,
+      oddsA: matchOdds.team1Odds,
+      oddsB: matchOdds.team2Odds,
+      manual: matchOdds.manual,
+    })
+    .from(matchOdds)
+    .innerJoin(matches, eq(matches.id, matchOdds.matchId))
+    .where(eq(matches.stageId, stageId));
+  return rows;
 }
 
 export async function stageBundle(stageId: string) {

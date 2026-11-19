@@ -1,0 +1,422 @@
+{
+  "odds": [
+    {
+      "fixtureId": "fx-heroic",
+      "participant1Id": 282171,
+      "participant2Id": 500862,
+      "sportId": 17,
+      "tournamentId": 51216,
+      "seasonId": 2026,
+      "statusId": 0,
+      "hasOdds": true,
+      "startTime": "2026-11-24T04:00:00Z",
+      "trueStartTime": null,
+      "trueEndTime": null,
+      "updatedAt": "2026-11-19T16:00:00Z",
+      "bookmakerOdds": {
+        "unibet": {
+          "markets": {
+            "171": {
+              "outcomes": {
+                "171": {
+                  "active": true,
+                  "players": {
+                    "0": {
+                      "price": 1.41,
+                      "active": true
+                    }
+                  }
+                },
+                "172": {
+                  "active": true,
+                  "players": {
+                    "0": {
+                      "price": 2.8,
+                      "active": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "fixtureId": "fx-9z",
+      "participant1Id": 573413,
+      "participant2Id": 557088,
+      "sportId": 17,
+      "tournamentId": 51216,
+      "seasonId": 2026,
+      "statusId": 0,
+      "hasOdds": true,
+      "startTime": "2026-11-24T04:00:00Z",
+      "trueStartTime": null,
+      "trueEndTime": null,
+      "updatedAt": "2026-11-19T16:00:00Z",
+      "bookmakerOdds": {
+        "unibet": {
+          "markets": {
+            "171": {
+              "outcomes": {
+                "171": {
+                  "active": true,
+                  "players": {
+                    "0": {
+                      "price": 1.52,
+                      "active": true
+                    }
+                  }
+                },
+                "172": {
+                  "active": true,
+                  "players": {
+                    "0": {
+                      "price": 2.48,
+                      "active": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "fixtureId": "fx-nip",
+      "participant1Id": 220608,
+      "participant2Id": 1044413,
+      "sportId": 17,
+      "tournamentId": 51216,
+      "seasonId": 2026,
+      "statusId": 0,
+      "hasOdds": true,
+      "startTime": "2026-11-24T05:00:00Z",
+      "trueStartTime": null,
+      "trueEndTime": null,
+      "updatedAt": "2026-11-19T16:00:00Z",
+      "bookmakerOdds": {
+        "unibet": {
+          "markets": {
+            "171": {
+              "outcomes": {
+                "171": {
+                  "active": true,
+                  "players": {
+                    "0": {
+                      "price": 1.6,
+                      "active": true
+                    }
+                  }
+                },
+                "172": {
+                  "active": true,
+                  "players": {
+                    "0": {
+                      "price": 2.28,
+                      "active": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "fixtureId": "fx-100t",
+      "participant1Id": 401563,
+      "participant2Id": 1129035,
+      "sportId": 17,
+      "tournamentId": 51216,
+      "seasonId": 2026,
+      "statusId": 0,
+      "hasOdds": true,
+      "startTime": "2026-11-24T05:00:00Z",
+      "trueStartTime": null,
+      "trueEndTime": null,
+      "updatedAt": "2026-11-19T16:00:00Z",
+      "bookmakerOdds": {
+        "unibet": {
+          "markets": {
+            "171": {
+              "outcomes": {
+                "171": {
+                  "active": true,
+                  "players": {
+                    "0": {
+                      "price": 1.11,
+                      "active": true
+                    }
+                  }
+                },
+                "172": {
+                  "active": true,
+                  "players": {
+                    "0": {
+                      "price": 5.75,
+                      "active": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "fixtureId": "fx-pari",
+      "participant1Id": 1063072,
+      "participant2Id": 433544,
+      "sportId": 17,
+      "tournamentId": 51216,
+      "seasonId": 2026,
+      "statusId": 0,
+      "hasOdds": true,
+      "startTime": "2026-11-24T06:00:00Z",
+      "trueStartTime": null,
+      "trueEndTime": null,
+      "updatedAt": "2026-11-19T16:00:00Z",
+      "bookmakerOdds": {
+        "unibet": {
+          "markets": {
+            "171": {
+              "outcomes": {
+                "171": {
+                  "active": true,
+                  "players": {
+                    "0": {
+                      "price": 1.43,
+                      "active": true
+                    }
+                  }
+                },
+                "172": {
+                  "active": true,
+                  "players": {
+                    "0": {
+                      "price": 2.75,
+                      "active": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "fixtureId": "fx-liquid",
+      "participant1Id": 235852,
+      "participant2Id": 1164277,
+      "sportId": 17,
+      "tournamentId": 51216,
+      "seasonId": 2026,
+      "statusId": 0,
+      "hasOdds": true,
+      "startTime": "2026-11-24T06:00:00Z",
+      "trueStartTime": null,
+      "trueEndTime": null,
+      "updatedAt": "2026-11-19T16:00:00Z",
+      "bookmakerOdds": {
+        "unibet": {
+          "markets": {
+            "171": {
+              "outcomes": {
+                "171": {
+                  "active": true,
+                  "players": {
+                    "0": {
+                      "price": 1.7,
+                      "active": true
+                    }
+                  }
+                },
+                "172": {
+                  "active": true,
+                  "players": {
+                    "0": {
+                      "price": 2.1,
+                      "active": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "fixtureId": "fx-ef",
+      "participant1Id": 830686,
+      "participant2Id": 1119531,
+      "sportId": 17,
+      "tournamentId": 51216,
+      "seasonId": 2026,
+      "statusId": 0,
+      "hasOdds": true,
+      "startTime": "2026-11-24T07:00:00Z",
+      "trueStartTime": null,
+      "trueEndTime": null,
+      "updatedAt": "2026-11-19T16:00:00Z",
+      "bookmakerOdds": {
+        "unibet": {
+          "markets": {
+            "171": {
+              "outcomes": {
+                "171": {
+                  "active": true,
+                  "players": {
+                    "0": {
+                      "price": 1.73,
+                      "active": true
+                    }
+                  }
+                },
+                "172": {
+                  "active": true,
+                  "players": {
+                    "0": {
+                      "price": 2.06,
+                      "active": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "fixtureId": "fx-faze",
+      "participant1Id": 241522,
+      "participant2Id": 1009267,
+      "sportId": 17,
+      "tournamentId": 51216,
+      "seasonId": 2026,
+      "statusId": 0,
+      "hasOdds": true,
+      "startTime": "2026-11-24T07:00:00Z",
+      "trueStartTime": null,
+      "trueEndTime": null,
+      "updatedAt": "2026-11-19T16:00:00Z",
+      "bookmakerOdds": {
+        "unibet": {
+          "markets": {
+            "171": {
+              "outcomes": {
+                "171": {
+                  "active": true,
+                  "players": {
+                    "0": {
+                      "price": 1.45,
+                      "active": true
+                    }
+                  }
+                },
+                "172": {
+                  "active": true,
+                  "players": {
+                    "0": {
+                      "price": 2.65,
+                      "active": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "fixtures": [
+    {
+      "fixtureId": "fx-heroic",
+      "participant1Id": 282171,
+      "participant1Name": "Heroic",
+      "participant2Id": 500862,
+      "participant2Name": "Imperial eSports",
+      "sportId": 17,
+      "tournamentId": 51216,
+      "startTime": "2026-11-24T04:00:00Z"
+    },
+    {
+      "fixtureId": "fx-9z",
+      "participant1Id": 573413,
+      "participant1Name": "9Z Team",
+      "participant2Id": 557088,
+      "participant2Name": "Lynn Vision Gaming",
+      "sportId": 17,
+      "tournamentId": 51216,
+      "startTime": "2026-11-24T04:00:00Z"
+    },
+    {
+      "fixtureId": "fx-nip",
+      "participant1Id": 220608,
+      "participant1Name": "Ninjas In Pyjamas",
+      "participant2Id": 1044413,
+      "participant2Name": "M80",
+      "sportId": 17,
+      "tournamentId": 51216,
+      "startTime": "2026-11-24T05:00:00Z"
+    },
+    {
+      "fixtureId": "fx-100t",
+      "participant1Id": 401563,
+      "participant1Name": "100 Thieves",
+      "participant2Id": 1129035,
+      "participant2Name": "Chinggis Warriors",
+      "sportId": 17,
+      "tournamentId": 51216,
+      "startTime": "2026-11-24T05:00:00Z"
+    },
+    {
+      "fixtureId": "fx-pari",
+      "participant1Id": 1063072,
+      "participant1Name": "Parivision",
+      "participant2Id": 433544,
+      "participant2Name": "Dendele CS",
+      "sportId": 17,
+      "tournamentId": 51216,
+      "startTime": "2026-11-24T06:00:00Z"
+    },
+    {
+      "fixtureId": "fx-liquid",
+      "participant1Id": 235852,
+      "participant1Name": "Team Liquid",
+      "participant2Id": 1164277,
+      "participant2Name": "BC.Game eSports",
+      "sportId": 17,
+      "tournamentId": 51216,
+      "startTime": "2026-11-24T06:00:00Z"
+    },
+    {
+      "fixtureId": "fx-ef",
+      "participant1Id": 830686,
+      "participant1Name": "Eternal Fire",
+      "participant2Id": 1119531,
+      "participant2Name": "Flyquest",
+      "sportId": 17,
+      "tournamentId": 51216,
+      "startTime": "2026-11-24T07:00:00Z"
+    },
+    {
+      "fixtureId": "fx-faze",
+      "participant1Id": 241522,
+      "participant1Name": "Faze Clan",
+      "participant2Id": 1009267,
+      "participant2Name": "Wildcard Gaming",
+      "sportId": 17,
+      "tournamentId": 51216,
+      "startTime": "2026-11-24T07:00:00Z"
+    }
+  ]
+}

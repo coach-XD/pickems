@@ -6,6 +6,7 @@ import {
   createSuggestedRound,
   deleteMatch,
   removeTeam,
+  saveMatchOdds,
   saveTeams,
   setResult,
   updateMatch,
@@ -19,7 +20,7 @@ import { SubmitButton } from "@/components/SubmitButton";
 import { UtcDateTimeField } from "@/components/UtcDateTimeField";
 import { BulkTeamAdd } from "@/components/BulkTeamAdd";
 import { LogoField } from "@/components/LogoField";
-import { getStageById, listTeamsOutsideStage, stageBundle, type StageTeamView } from "@/lib/queries";
+import { getStageById, listStageOdds, listTeamsOutsideStage, stageBundle, type StageTeamView } from "@/lib/queries";
 import { pairNextRound } from "@/lib/valveSwiss";
 import { staggerFrom } from "@/lib/time";
 import { btnDanger, btnGhost, btnPrimary, cardClass, inputClass, labelClass, selectClass } from "@/lib/ui";
@@ -39,6 +40,8 @@ export default async function EditStagePage({
   if (!stage) notFound();
   const bundle = await stageBundle(stage.id);
   const outside = await listTeamsOutsideStage(stage.id);
+  const odds = await listStageOdds(stage.id);
+  const oddsByMatch = new Map(odds.map((row) => [row.matchId, row]));
   const latestRound = bundle.matches.reduce((max, match) => Math.max(max, match.round), 0);
   const latestOpen = bundle.matches.some((match) => match.round === latestRound && !match.winnerId);
   const active = bundle.standings.filter((row) => row.status === "active");
@@ -321,6 +324,19 @@ export default async function EditStagePage({
                       <p className="text-xs text-zinc-500">No result</p>
                     )}
                   </div>
+                  <form action={saveMatchOdds} className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">
+                    <input type="hidden" name="matchId" value={match.id} />
+                    <label className="block">
+                      <span className={labelClass}>{match.teamAShort} odds</span>
+                      <input name="oddsA" inputMode="decimal" defaultValue={oddsByMatch.get(match.id)?.oddsA ?? ""} placeholder="1.44" className={inputClass} />
+                    </label>
+                    <label className="block">
+                      <span className={labelClass}>{match.teamBShort} odds</span>
+                      <input name="oddsB" inputMode="decimal" defaultValue={oddsByMatch.get(match.id)?.oddsB ?? ""} placeholder="2.90" className={inputClass} />
+                    </label>
+                    <SubmitButton className={btnGhost}>Save odds</SubmitButton>
+                  </form>
+                  <p className="text-[11px] text-zinc-500">A saved price overrides the feed. Clear both boxes to use the feed again. Odds do not affect scoring.</p>
                   <form action={setResult} className="grid grid-cols-2 gap-2">
                     <input type="hidden" name="matchId" value={match.id} />
                     <select name="winnerId" defaultValue={match.winnerId ?? ""} className={selectClass}>

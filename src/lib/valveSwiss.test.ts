@@ -26,7 +26,7 @@ describe("Valve Swiss pairings", () => {
       [
         "100 Thieves vs Chinggis Warriors",
         "9z vs Lynn Vision",
-        "BC.Game vs Liquid",
+        "BC.Game (GOSH) vs Liquid",
         "DENDELE vs PARIVISION",
         "Eternal Fire vs FlyQuest",
         "FaZe vs Wildcard",

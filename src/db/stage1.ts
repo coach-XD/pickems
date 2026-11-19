@@ -18,27 +18,29 @@ export type Stage1Team = {
   seed: number;
   worldRank: number;
   otherRank: number;
+  /** Valve VRS points from the 2 Nov 2026 global standings. Display math only. */
+  vrsPoints: number;
 };
 
 export const STAGE1_SLUG = "stage-1";
 
 export const STAGE1_TEAMS: Stage1Team[] = [
-  { name: "Ninjas in Pyjamas", shortName: "NiP", region: "Europe", seed: 1, worldRank: 18, otherRank: 18 },
-  { name: "PARIVISION", shortName: "PARI", region: "Europe", seed: 2, worldRank: 14, otherRank: 14 },
-  { name: "HEROIC", shortName: "HEROIC", region: "Europe", seed: 3, worldRank: 20, otherRank: 20 },
-  { name: "FaZe", shortName: "FaZe", region: "Europe", seed: 4, worldRank: 23, otherRank: 23 },
-  { name: "Liquid", shortName: "Liquid", region: "Americas", seed: 5, worldRank: 15, otherRank: 15 },
-  { name: "Eternal Fire", shortName: "EF", region: "Europe", seed: 6, worldRank: 24, otherRank: 24 },
-  { name: "100 Thieves", shortName: "100T", region: "Europe", seed: 7, worldRank: 17, otherRank: 17 },
-  { name: "9z", shortName: "9z", region: "Americas", seed: 8, worldRank: 29, otherRank: 29 },
-  { name: "M80", shortName: "M80", region: "Americas", seed: 9, worldRank: 27, otherRank: 27 },
-  { name: "DENDELE", shortName: "DEND", region: "Americas", seed: 10, worldRank: 28, otherRank: 28 },
-  { name: "Imperial", shortName: "IMP", region: "Americas", seed: 11, worldRank: 35, otherRank: 34 },
-  { name: "Wildcard", shortName: "WC", region: "Americas", seed: 12, worldRank: 39, otherRank: 39 },
-  { name: "BC.Game", shortName: "BC", region: "Asia", seed: 13, worldRank: 46, otherRank: 46 },
-  { name: "FlyQuest", shortName: "FQ", region: "Asia", seed: 14, worldRank: 44, otherRank: 43 },
-  { name: "Chinggis Warriors", shortName: "CW", region: "Asia", seed: 15, worldRank: 54, otherRank: 53 },
-  { name: "Lynn Vision", shortName: "LV", region: "Asia", seed: 16, worldRank: 56, otherRank: 57 },
+  { name: "Ninjas in Pyjamas", shortName: "NiP", region: "Europe", seed: 1, worldRank: 18, otherRank: 18, vrsPoints: 1564 },
+  { name: "PARIVISION", shortName: "PARI", region: "Europe", seed: 2, worldRank: 14, otherRank: 14, vrsPoints: 1560 },
+  { name: "HEROIC", shortName: "HEROIC", region: "Europe", seed: 3, worldRank: 20, otherRank: 20, vrsPoints: 1548 },
+  { name: "FaZe", shortName: "FaZe", region: "Europe", seed: 4, worldRank: 23, otherRank: 23, vrsPoints: 1539 },
+  { name: "Liquid", shortName: "Liquid", region: "Americas", seed: 5, worldRank: 15, otherRank: 15, vrsPoints: 1528 },
+  { name: "Eternal Fire", shortName: "EF", region: "Europe", seed: 6, worldRank: 24, otherRank: 24, vrsPoints: 1513 },
+  { name: "100 Thieves", shortName: "100T", region: "Europe", seed: 7, worldRank: 17, otherRank: 17, vrsPoints: 1511 },
+  { name: "9z", shortName: "9z", region: "Americas", seed: 8, worldRank: 29, otherRank: 29, vrsPoints: 1490 },
+  { name: "M80", shortName: "M80", region: "Americas", seed: 9, worldRank: 27, otherRank: 27, vrsPoints: 1489 },
+  { name: "DENDELE", shortName: "DEND", region: "Americas", seed: 10, worldRank: 28, otherRank: 28, vrsPoints: 1466 },
+  { name: "Imperial", shortName: "IMP", region: "Americas", seed: 11, worldRank: 35, otherRank: 34, vrsPoints: 1406 },
+  { name: "Wildcard", shortName: "WC", region: "Americas", seed: 12, worldRank: 39, otherRank: 39, vrsPoints: 1391 },
+  { name: "BC.Game (GOSH)", shortName: "BC", region: "Asia", seed: 13, worldRank: 46, otherRank: 46, vrsPoints: 1337 },
+  { name: "FlyQuest", shortName: "FQ", region: "Asia", seed: 14, worldRank: 44, otherRank: 43, vrsPoints: 1318 },
+  { name: "Chinggis Warriors", shortName: "CW", region: "Asia", seed: 15, worldRank: 54, otherRank: 53, vrsPoints: 1272 },
+  { name: "Lynn Vision", shortName: "LV", region: "Asia", seed: 16, worldRank: 56, otherRank: 57, vrsPoints: 1267 },
 ];
 
 export const STAGE1_MATCHES: Array<{
