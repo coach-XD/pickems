@@ -22,7 +22,7 @@ export function AppShell({
   children: ReactNode;
 }) {
   const pathname = usePathname();
-  const wide = pathname.startsWith("/picks") || pathname.startsWith("/players/");
+  const wide = pathname.startsWith("/picks") || pathname.startsWith("/players/") || pathname.includes("/compare");
   const width = wide ? "max-w-[1920px]" : "max-w-3xl";
   return (
     <div className="min-h-full">

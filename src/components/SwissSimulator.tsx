@@ -5,7 +5,9 @@ import { resolveLogo } from "@/lib/logos";
 import { saveBracket } from "@/app/actions/picks";
 import { derivedPlacements, picksFromBracket, projectBracket, type BracketPick, type RealSeries } from "@/lib/bracket";
 import { displayOdds } from "@/lib/odds/price";
-import { pairKey } from "@/lib/swiss";
+import { gradePlacementPick, gradeSeriesPick, type PlacementGrade } from "@/lib/results";
+import { deriveStandings, pairKey } from "@/lib/swiss";
+import type { Slot } from "@/lib/types";
 import { ResetControl, SaveStatus } from "@/components/SaveState";
 import { cx } from "@/lib/ui";
 
@@ -57,6 +59,19 @@ export function SwissSimulator({
     for (const match of realMatches) map.set(pairKey(match.teamAId, match.teamBId), match);
     return map;
   }, [realMatches]);
+  const realRecords = useMemo(() => {
+    const standings = deriveStandings(
+      teams,
+      realMatches.map((match) => ({
+        round: match.round,
+        teamAId: match.teamAId,
+        teamBId: match.teamBId,
+        winnerId: match.winnerId,
+      })),
+    );
+    return new Map(standings.map((row) => [row.teamId, row]));
+  }, [teams, realMatches]);
+  const showGrades = readOnly || realMatches.some((match) => match.winnerId);
 
   const frozen = locked || readOnly;
 
@@ -152,12 +167,18 @@ export function SwissSimulator({
                       .filter((match) => `${match.wins}-${match.losses}` === record)
                       .map((match) => {
                         const real = realByPair.get(pairKey(match.teamAId, match.teamBId));
-                        const verdict =
-                          frozen && match.winnerId && real?.winnerId
-                            ? real.winnerId === match.winnerId
-                              ? "correct"
-                              : "wrong"
-                            : null;
+                        const grade = showGrades
+                          ? gradeSeriesPick({
+                              format: real?.format ?? match.format,
+                              pickWinnerId: match.winnerId,
+                              pickScoreA: match.scoreA,
+                              pickScoreB: match.scoreB,
+                              resultWinnerId: real?.winnerId ?? null,
+                              resultScoreA: real?.scoreA ?? null,
+                              resultScoreB: real?.scoreB ?? null,
+                            })
+                          : null;
+                        const verdict = grade && grade.tone !== "empty" && grade.tone !== "pending" ? grade.tone : null;
                         const margin =
                           match.scoreA != null && match.scoreB != null
                             ? `${Math.max(match.scoreA, match.scoreB)}-${Math.min(match.scoreA, match.scoreB)}`
@@ -210,6 +231,19 @@ export function SwissSimulator({
                                 ))}
                               </div>
                             ) : null}
+                            {grade && grade.tone !== "empty" ? (
+                              <p
+                                className={cx(
+                                  "mt-0.5 text-center text-[10px] font-semibold",
+                                  grade.tone === "correct" && "text-emerald-200",
+                                  grade.tone === "wrong" && "text-rose-200",
+                                  grade.tone === "pending" && "text-zinc-500",
+                                )}
+                              >
+                                {real?.winnerId && real.scoreA != null ? `Final ${real.scoreA}-${real.scoreB} · ` : ""}
+                                {grade.tone === "pending" ? "Pending" : grade.exact ? `+${grade.points} exact` : grade.tone === "correct" ? `+${grade.points}` : "0"}
+                              </p>
+                            ) : null}
                           </article>
                         );
                       })}
@@ -226,12 +260,14 @@ export function SwissSimulator({
               ["3-1 / 3-2", placements.filter((slot) => slot.slot === "advance").map((slot) => slot.teamId)],
             ]}
             teamById={teamById}
+            gradeFor={showGrades ? (teamId, label) => placementGrade(teamId, label, realRecords) : undefined}
           />
           <ResultColumn
             title="Eliminated"
             tone="red"
             groups={[["0-3", placements.filter((slot) => slot.slot === "winless").map((slot) => slot.teamId)]]}
             teamById={teamById}
+            gradeFor={showGrades ? (teamId, label) => placementGrade(teamId, label, realRecords) : undefined}
             extra={eliminatedRecords(teams, matches)}
           />
         </div>
@@ -307,18 +343,31 @@ function eliminatedRecords(
   ];
 }
 
+function placementGrade(
+  teamId: string,
+  label: string,
+  records: Map<string, { wins: number; losses: number }>,
+): PlacementGrade | null {
+  const slot: Slot | null = label === "3-0" ? "perfect" : label === "0-3" ? "winless" : label === "3-1 / 3-2" ? "advance" : null;
+  if (!slot) return null;
+  const record = records.get(teamId) ?? { wins: 0, losses: 0 };
+  return gradePlacementPick(slot, record.wins, record.losses);
+}
+
 function ResultColumn({
   title,
   tone,
   groups,
   extra = [],
   teamById,
+  gradeFor,
 }: {
   title: string;
   tone: "green" | "red";
   groups: Array<[string, string[]]>;
   extra?: Array<[string, string[]]>;
   teamById: Map<string, SimTeam>;
+  gradeFor?: (teamId: string, label: string) => PlacementGrade | null;
 }) {
   const blocks = [...groups, ...extra].filter(([, ids]) => ids.length > 0);
   if (blocks.length === 0) return null;
@@ -339,7 +388,7 @@ function ResultColumn({
           <p className="mb-1 text-center text-[10px] font-semibold">{label}</p>
           <div className="flex flex-wrap gap-x-2 gap-y-1">
             {ids.map((teamId) => (
-              <PoolChip key={teamId} team={teamById.get(teamId)!} />
+              <PoolChip key={teamId} team={teamById.get(teamId)!} grade={gradeFor?.(teamId, label) ?? null} />
             ))}
           </div>
         </div>
@@ -348,7 +397,7 @@ function ResultColumn({
   );
 }
 
-function PoolChip({ team }: { team: SimTeam }) {
+function PoolChip({ team, grade }: { team: SimTeam; grade?: PlacementGrade | null }) {
   const [broken, setBroken] = useState(false);
   const logo = resolveLogo(team);
   return (
@@ -361,7 +410,21 @@ function PoolChip({ team }: { team: SimTeam }) {
           <span className="text-[8px] font-bold text-zinc-200">{team.shortName.slice(0, 2)}</span>
         )}
       </span>
-      <span className="text-[11px] font-medium leading-none text-white">{team.shortName}</span>
+      <span className="min-w-0">
+        <span className="block truncate text-[11px] font-medium leading-none text-white">{team.shortName}</span>
+        {grade ? (
+          <span
+            className={cx(
+              "block text-[9px] font-semibold leading-tight",
+              grade.tone === "correct" && "text-emerald-200",
+              grade.tone === "wrong" && "text-rose-200",
+              grade.tone === "pending" && "text-zinc-500",
+            )}
+          >
+            {grade.tone === "pending" ? "pending" : grade.tone === "correct" ? `+${grade.points}` : "0"}
+          </span>
+        ) : null}
+      </span>
     </span>
   );
 }

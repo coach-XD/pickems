@@ -26,6 +26,7 @@ function refresh(slug?: string) {
   revalidatePath("/admin");
   revalidatePath("/admin/players");
   revalidatePath("/admin/rosters");
+  revalidatePath("/players", "layout");
   if (slug) {
     revalidatePath(`/stages/${slug}`);
     revalidatePath(`/stages/${slug}/compare`);
@@ -474,7 +475,7 @@ export async function setResult(formData: FormData) {
   const back = `/admin/stages/${match.stageId}`;
   const winnerId = String(formData.get("winnerId") ?? "");
   if (!winnerId) {
-    await db.update(matches).set({ winnerId: null, scoreA: null, scoreB: null }).where(eq(matches.id, match.id));
+    await db.update(matches).set({ winnerId: null, scoreA: null, scoreB: null, resultAt: null }).where(eq(matches.id, match.id));
   } else {
     const marginRaw = String(formData.get("margin") ?? "");
     const margin = marginRaw === "2-0" || marginRaw === "2-1" ? marginRaw : null;
@@ -488,7 +489,7 @@ export async function setResult(formData: FormData) {
       });
       await db
         .update(matches)
-        .set({ winnerId, scoreA: scores.scoreA, scoreB: scores.scoreB })
+        .set({ winnerId, scoreA: scores.scoreA, scoreB: scores.scoreB, resultAt: new Date() })
         .where(eq(matches.id, match.id));
     } catch {
       bounce(back, "match-result");

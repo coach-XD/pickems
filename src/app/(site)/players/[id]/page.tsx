@@ -2,11 +2,13 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { PlayoffBracket } from "@/components/PlayoffBracket";
 import { SwissSimulator } from "@/components/SwissSimulator";
-import { projectBracket, scoreBracket } from "@/lib/bracket";
+import { derivedPlacements, projectBracket, scoreBracket } from "@/lib/bracket";
 import { demoCookieOn, getSessionPlayer, isAdmin } from "@/lib/auth";
 import { allowDemoData } from "@/lib/logos";
 import { bracketStatus, canViewPicks } from "@/lib/pickVisibility";
 import { scorePlayoff } from "@/lib/playoff";
+import { gradePlacementPick } from "@/lib/results";
+import { SLOT_LABEL } from "@/lib/types";
 import { maybeRefreshOdds } from "@/lib/odds/refresh";
 import { listBrackets, listPlayers, listStageOdds, listStages, stageBundle } from "@/lib/queries";
 import { deriveStandings } from "@/lib/swiss";
@@ -64,7 +66,6 @@ export default async function PlayerPicksPage({
       : status === "partial"
         ? `Picks hidden until the bracket locks. ${person.displayName} hasn't finished their bracket yet.`
         : `Picks hidden until the bracket locks. ${person.displayName} hasn't started their bracket yet.`;
-  const hasResults = bundle.matches.some((match) => match.winnerId);
   const standings = deriveStandings(
     teams,
     bundle.matches.map((match) => ({
@@ -115,11 +116,27 @@ export default async function PlayerPicksPage({
             {visible ? statusLabel : "Picks hidden until the bracket locks"}
           </p>
         </div>
-        {visible && hasResults ? (
-          <p className="text-sm tabular-nums text-zinc-300">
-            Match {score.matchPoints} · Maps {score.mapPoints} · Place {score.placementPoints} ·{" "}
-            <span className="font-semibold text-white">Total {score.matchPoints + score.mapPoints + score.placementPoints}</span>
-          </p>
+        {visible ? (
+          <div className="text-right text-sm tabular-nums text-zinc-300">
+            <p>
+              Match {score.matchPoints} · Maps {score.mapPoints} · Place {score.placementPoints} ·{" "}
+              <span className="font-semibold text-white">Total {score.matchPoints + score.mapPoints + score.placementPoints}</span>
+            </p>
+            {stage.kind === "swiss" ? (
+              <p className="mt-1 text-xs text-zinc-500">
+                {derivedPlacements(teams, projected).length === 0
+                  ? "3-0, 0-3, and advance are pending"
+                  : derivedPlacements(teams, projected)
+                      .map((slot) => {
+                        const record = standings.find((row) => row.teamId === slot.teamId);
+                        const grade = gradePlacementPick(slot.slot, record?.wins ?? 0, record?.losses ?? 0);
+                        const name = bundle.teams.find((team) => team.teamId === slot.teamId)?.shortName ?? "Team";
+                        return `${name} ${SLOT_LABEL[slot.slot]} ${grade.tone === "pending" ? "pending" : grade.tone === "correct" ? `+${grade.points}` : "wrong"}`;
+                      })
+                      .join(" · ")}
+              </p>
+            ) : null}
+          </div>
         ) : null}
       </div>
       <div className="no-scrollbar flex gap-2 overflow-x-auto">

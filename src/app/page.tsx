@@ -4,11 +4,11 @@ import { AppShell } from "@/components/AppShell";
 import { Flash } from "@/components/Flash";
 import { demoCookieOn, getSessionPlayer } from "@/lib/auth";
 import { allowDemoData } from "@/lib/logos";
-import { formatRank } from "@/lib/ranking";
 import { TeamBadge } from "@/components/TeamBadge";
 import { maybeRefreshOdds } from "@/lib/odds/refresh";
 import { displayOdds } from "@/lib/odds/price";
-import { getLeaderboard, hasDemoStage, listStageOdds, listStageMatches, listStageTeams, listStages } from "@/lib/queries";
+import { LeaderboardTable } from "@/components/LeaderboardTable";
+import { getLeaderboard, hasDemoStage, listStageOdds, listStageMatches, listStageTeams, listStages, pointsSinceLastResult } from "@/lib/queries";
 import { btnGhost, cardClass, cx } from "@/lib/ui";
 
 export default async function Home({
@@ -28,6 +28,7 @@ export default async function Home({
   const selected = requested === "overall" ? null : (stages.find((stage) => stage.slug === requested) ?? null);
   const stageIds = selected ? [selected.id] : realStages.map((stage) => stage.id);
   const board = await getLeaderboard(stageIds, Boolean(selected?.isDemo));
+  const gains = await pointsSinceLastResult(stageIds);
   const logoStageId = selected?.id ?? realStages[0]?.id;
   void maybeRefreshOdds();
   const field = logoStageId ? await listStageTeams(logoStageId) : [];
@@ -113,44 +114,12 @@ export default async function Home({
             <p className="text-[10px] text-zinc-500">Odds for fun · don&apos;t affect scoring</p>
           </div>
         ) : null}
-        {board.length === 0 ? (
-          <p className={`${cardClass} p-4 text-sm text-zinc-400`}>Nobody has joined yet. Share the invite link.</p>
-        ) : (
-          <div className={`${cardClass} overflow-hidden`}>
-            <div className="grid grid-cols-[2.4rem_minmax(0,1fr)_3.2rem_3.2rem_3.2rem_3.4rem] gap-2 border-b border-white/10 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-zinc-500 sm:grid-cols-[3rem_minmax(0,1fr)_4.5rem_4.5rem_4.5rem_4.5rem] sm:text-xs">
-              <span>Rank</span>
-              <span>Name</span>
-              <span className="text-right">Match</span>
-              <span className="text-right">Maps</span>
-              <span className="text-right">Place</span>
-              <span className="text-right">Total</span>
-            </div>
-            <ol>
-              {board.map((row) => {
-                const you = row.playerId === player.id;
-                return (
-                  <li
-                    key={row.playerId}
-                    className={cx(
-                      "grid grid-cols-[2.4rem_minmax(0,1fr)_3.2rem_3.2rem_3.2rem_3.4rem] items-center gap-2 border-b border-white/5 px-3 py-2.5 last:border-b-0 sm:grid-cols-[3rem_minmax(0,1fr)_4.5rem_4.5rem_4.5rem_4.5rem]",
-                      you && "bg-amber-400/10",
-                    )}
-                  >
-                    <span className="font-mono text-sm text-amber-200">{formatRank(row.rank)}</span>
-                    <Link href={`/players/${row.playerId}?stage=${selected?.slug ?? openStage?.slug ?? "stage-1"}`} className="truncate font-semibold hover:text-amber-200">
-                      {row.name}
-                      {you ? <span className="ml-2 text-xs font-medium text-amber-200">you</span> : null}
-                    </Link>
-                    <span className="text-right text-sm tabular-nums text-zinc-300">{row.matchPoints}</span>
-                    <span className="text-right text-sm tabular-nums text-zinc-300">{row.mapPoints}</span>
-                    <span className="text-right text-sm tabular-nums text-zinc-300">{row.placementPoints}</span>
-                    <span className="text-right text-base font-semibold tabular-nums">{row.total}</span>
-                  </li>
-                );
-              })}
-            </ol>
-          </div>
-        )}
+        <LeaderboardTable
+          rows={board}
+          youId={player.id}
+          stageSlug={selected?.slug ?? openStage?.slug ?? "stage-1"}
+          gains={gains}
+        />
         <p className="text-xs leading-5 text-zinc-500">
           Tied totals share a rank, and the next rank skips.
           {selected?.isDemo ? " This is the sample stage, kept off the overall total." : ""}

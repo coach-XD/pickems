@@ -337,23 +337,7 @@ export default async function EditStagePage({
                     <SubmitButton className={btnGhost}>Save odds</SubmitButton>
                   </form>
                   <p className="text-[11px] text-zinc-500">A saved price overrides the feed. Clear both boxes to use the feed again. Odds do not affect scoring.</p>
-                  <form action={setResult} className="grid grid-cols-2 gap-2">
-                    <input type="hidden" name="matchId" value={match.id} />
-                    <select name="winnerId" defaultValue={match.winnerId ?? ""} className={selectClass}>
-                      <option value="">Clear result</option>
-                      <option value={match.teamAId}>{match.teamAShort} wins</option>
-                      <option value={match.teamBId}>{match.teamBShort} wins</option>
-                    </select>
-                    {match.format === "bo3" ? (
-                      <select name="margin" defaultValue={marginOf(match.scoreA, match.scoreB)} className={selectClass}>
-                        <option value="2-0">2-0</option>
-                        <option value="2-1">2-1</option>
-                      </select>
-                    ) : (
-                      <span />
-                    )}
-                    <SubmitButton className={`${btnPrimary} col-span-2`}>Save result</SubmitButton>
-                  </form>
+                  <ResultPad match={match} />
                   <details>
                     <summary className="cursor-pointer text-sm text-zinc-400">Edit match</summary>
                     <form action={updateMatch} className="mt-3 space-y-2">
@@ -405,6 +389,69 @@ function TeamSelect({
         </option>
       ))}
     </select>
+  );
+}
+
+function ResultPad({
+  match,
+}: {
+  match: {
+    id: string;
+    format: "bo1" | "bo3";
+    teamAId: string;
+    teamBId: string;
+    teamAShort: string;
+    teamBShort: string;
+    winnerId: string | null;
+    scoreA: number | null;
+    scoreB: number | null;
+  };
+}) {
+  const currentMargin = match.format === "bo3" ? marginOf(match.scoreA, match.scoreB) : null;
+  const options =
+    match.format === "bo3"
+      ? [
+          { winnerId: match.teamAId, margin: "2-0" as const, label: `${match.teamAShort} 2-0` },
+          { winnerId: match.teamAId, margin: "2-1" as const, label: `${match.teamAShort} 2-1` },
+          { winnerId: match.teamBId, margin: "2-0" as const, label: `${match.teamBShort} 2-0` },
+          { winnerId: match.teamBId, margin: "2-1" as const, label: `${match.teamBShort} 2-1` },
+        ]
+      : [
+          { winnerId: match.teamAId, margin: null, label: `${match.teamAShort} wins` },
+          { winnerId: match.teamBId, margin: null, label: `${match.teamBShort} wins` },
+        ];
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {options.map((option) => {
+        const active = match.winnerId === option.winnerId && (option.margin == null || option.margin === currentMargin);
+        return (
+          <form key={option.label} action={setResult}>
+            <input type="hidden" name="matchId" value={match.id} />
+            <input type="hidden" name="winnerId" value={option.winnerId} />
+            {option.margin ? <input type="hidden" name="margin" value={option.margin} /> : null}
+            <button
+              type="submit"
+              className={
+                active
+                  ? "rounded-lg border border-emerald-400/70 bg-emerald-400/20 px-2.5 py-1.5 text-xs font-semibold text-emerald-100"
+                  : "rounded-lg border border-white/10 px-2.5 py-1.5 text-xs font-semibold text-zinc-100 hover:bg-white/10"
+              }
+            >
+              {option.label}
+            </button>
+          </form>
+        );
+      })}
+      {match.winnerId ? (
+        <form action={setResult}>
+          <input type="hidden" name="matchId" value={match.id} />
+          <input type="hidden" name="winnerId" value="" />
+          <button type="submit" className="rounded-lg border border-rose-400/40 px-2.5 py-1.5 text-xs font-semibold text-rose-200">
+            Undo
+          </button>
+        </form>
+      ) : null}
+    </div>
   );
 }
 

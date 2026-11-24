@@ -14,6 +14,7 @@
     "db:seed": "tsx src/db/seed.ts",
     "db:vrs": "tsx src/db/update-vrs.ts",
     "db:gosh": "tsx src/db/rename-gosh.ts",
+    "db:preview-results": "tsx src/db/preview-results.ts",
     "db:seed:demo": "tsx src/db/seed-demo.ts",
     "db:setup": "drizzle-kit migrate && tsx src/db/seed.ts"
   },

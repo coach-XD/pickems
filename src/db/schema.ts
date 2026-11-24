@@ -74,6 +74,7 @@ export const matches = pgTable("matches", {
   winnerId: uuid("winner_id").references(() => teams.id, { onDelete: "restrict" }),
   scoreA: integer("score_a"),
   scoreB: integer("score_b"),
+  resultAt: timestamp("result_at", { withTimezone: true, mode: "date" }),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 });
 
