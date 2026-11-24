@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { gradePlacementPick, gradeSeriesPick, latestScoredMatch, pointsOnSeries } from "./results";
+import { gradePlacementPick, gradeRealMatch, gradeSeriesPick, latestScoredMatch, pointsOnSeries } from "./results";
 
 describe("series verdicts", () => {
   it("pays 1 for a correct winner and another 1 for the exact Bo3 score", () => {
@@ -13,7 +13,7 @@ describe("series verdicts", () => {
         resultScoreA: 2,
         resultScoreB: 0,
       }),
-    ).toEqual({ tone: "correct", points: 2, winnerPoints: 1, mapPoints: 1, exact: true });
+    ).toEqual({ tone: "correct", points: 2, winnerPoints: 1, mapPoints: 1, exact: true, mismatch: false });
   });
 
   it("stays correct without the map point when the Bo3 margin is wrong", () => {
@@ -64,6 +64,35 @@ describe("series verdicts", () => {
         resultScoreB: 0,
       }).tone,
     ).toBe("empty");
+  });
+});
+
+describe("record pools", () => {
+  it("pays neither the winner nor the exact Bo3 point when the pool differs", () => {
+    const grade = gradeRealMatch({
+      pick: {
+        round: 3,
+        wins: 0,
+        losses: 2,
+        format: "bo3",
+        teamAId: "nip",
+        teamBId: "lv",
+        winnerId: "nip",
+        scoreA: 2,
+        scoreB: 0,
+      },
+      real: {
+        round: 3,
+        teamAId: "nip",
+        teamBId: "lv",
+        format: "bo3",
+        winnerId: "nip",
+        scoreA: 2,
+        scoreB: 0,
+      },
+      pool: { wins: 2, losses: 0 },
+    });
+    expect(grade).toMatchObject({ tone: "wrong", points: 0, mapPoints: 0, exact: false, mismatch: true });
   });
 });
 

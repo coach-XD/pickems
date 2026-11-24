@@ -38,6 +38,55 @@ function pickKey(round: number, teamAId: string, teamBId: string): string {
   return `${round}|${pairKey(teamAId, teamBId)}`;
 }
 
+export type RecordPool = { wins: number; losses: number };
+
+/**
+ * Record each team carries into a real match, from earlier real results only.
+ * Every match in a round shares the record from before that round.
+ */
+export function enteringPools(
+  matches: Array<{ round: number; teamAId: string; teamBId: string; winnerId: string | null }>,
+): Map<string, RecordPool> {
+  const rounds = [...new Set(matches.map((match) => match.round))].sort((a, b) => a - b);
+  const records = new Map<string, RecordPool>();
+  const pools = new Map<string, RecordPool>();
+  for (const round of rounds) {
+    const inRound = matches.filter((match) => match.round === round);
+    for (const match of inRound) {
+      const sideA = records.get(match.teamAId) ?? { wins: 0, losses: 0 };
+      const sideB = records.get(match.teamBId) ?? { wins: 0, losses: 0 };
+      const shared = sideA.wins === sideB.wins && sideA.losses === sideB.losses;
+      pools.set(`${round}|${pairKey(match.teamAId, match.teamBId)}`, shared ? { wins: sideA.wins, losses: sideA.losses } : { wins: -1, losses: -1 });
+    }
+    for (const match of inRound) {
+      if (match.winnerId !== match.teamAId && match.winnerId !== match.teamBId) continue;
+      const sideA = { ...(records.get(match.teamAId) ?? { wins: 0, losses: 0 }) };
+      const sideB = { ...(records.get(match.teamBId) ?? { wins: 0, losses: 0 }) };
+      if (teamStatus(sideA.wins, sideA.losses) !== "active" || teamStatus(sideB.wins, sideB.losses) !== "active") continue;
+      if (match.winnerId === match.teamAId) {
+        sideA.wins += 1;
+        sideB.losses += 1;
+      } else {
+        sideB.wins += 1;
+        sideA.losses += 1;
+      }
+      records.set(match.teamAId, sideA);
+      records.set(match.teamBId, sideB);
+    }
+  }
+  return pools;
+}
+
+/** Same two teams score only in the same round and the same W-L pool. */
+export function sameMatchup(
+  pick: { round: number; wins: number; losses: number; teamAId: string; teamBId: string },
+  real: { round: number; teamAId: string; teamBId: string },
+  pool: RecordPool | null | undefined,
+): boolean {
+  if (!pool || pool.wins < 0) return false;
+  return pick.round === real.round && pick.wins === pool.wins && pick.losses === pool.losses && pairKey(pick.teamAId, pick.teamBId) === pairKey(real.teamAId, real.teamBId);
+}
+
 export function marginOf(scoreA: number | null, scoreB: number | null, winnerIsA: boolean): "2-0" | "2-1" | null {
   if (scoreA == null || scoreB == null) return null;
   const winnerMaps = winnerIsA ? scoreA : scoreB;
@@ -196,21 +245,20 @@ export function scoreBracket(input: {
   realRecords: Map<string, { wins: number; losses: number }>;
 }): { matchPoints: number; mapPoints: number; placementPoints: number; correctPlacements: number } {
   const simulated = projectBracket(input);
+  const pools = enteringPools(input.realMatches);
   const realByKey = new Map<string, RealSeries>();
   for (const match of input.realMatches) {
     realByKey.set(`${match.round}|${pairKey(match.teamAId, match.teamBId)}`, match);
-    const loose = pairKey(match.teamAId, match.teamBId);
-    if (!realByKey.has(loose)) realByKey.set(loose, match);
   }
 
   let matchPoints = 0;
   let mapPoints = 0;
   for (const pick of simulated) {
     if (!pick.winnerId) continue;
-    const real =
-      realByKey.get(`${pick.round}|${pairKey(pick.teamAId, pick.teamBId)}`) ??
-      realByKey.get(pairKey(pick.teamAId, pick.teamBId));
-    if (!real?.winnerId || real.winnerId !== pick.winnerId) continue;
+    const key = `${pick.round}|${pairKey(pick.teamAId, pick.teamBId)}`;
+    const real = realByKey.get(key);
+    if (!real?.winnerId || !sameMatchup(pick, real, pools.get(key))) continue;
+    if (real.winnerId !== pick.winnerId) continue;
     matchPoints += 1;
     if (real.format === "bo3" && pick.format === "bo3") {
       const predicted = marginOf(pick.scoreA, pick.scoreB, pick.winnerId === pick.teamAId);

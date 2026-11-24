@@ -338,6 +338,17 @@ export async function pointsSinceLastResult(stageIds: string[]): Promise<Map<str
     scoreA: latest.scoreA,
     scoreB: latest.scoreB,
   };
+  const slate: RealSeries[] = matchRows
+    .filter((match) => match.stageId === latest.stageId)
+    .map((match) => ({
+      round: match.round,
+      teamAId: match.teamAId,
+      teamBId: match.teamBId,
+      format: match.format,
+      winnerId: match.winnerId,
+      scoreA: match.scoreA,
+      scoreB: match.scoreB,
+    }));
   for (const bracket of brackets) {
     gains.set(
       bracket.playerId,
@@ -346,6 +357,7 @@ export async function pointsSinceLastResult(stageIds: string[]): Promise<Map<str
         round1,
         picks: (bracket.picks ?? []) as BracketPick[],
         match: series,
+        slate,
       }),
     );
   }

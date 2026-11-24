@@ -1,4 +1,4 @@
-import { projectBracket, type BracketPick, type RealSeries } from "./bracket";
+import { enteringPools, projectBracket, sameMatchup, type BracketPick, type RealSeries, type RecordPool } from "./bracket";
 import { scoreMatchPick, scorePlacementSlot } from "./scoring";
 import { pairKey } from "./swiss";
 import type { SeriesFormat, Slot } from "./types";
@@ -11,6 +11,9 @@ export type SeriesGrade = {
   winnerPoints: number;
   mapPoints: number;
   exact: boolean;
+  /** The teams played, but not in this round and record. */
+  mismatch: boolean;
+  final?: string | null;
 };
 
 export type PlacementGrade = {
@@ -32,10 +35,10 @@ export function gradeSeriesPick(input: {
   resultScoreB: number | null;
 }): SeriesGrade {
   if (!input.pickWinnerId) {
-    return { tone: input.resultWinnerId ? "empty" : "pending", points: 0, winnerPoints: 0, mapPoints: 0, exact: false };
+    return { tone: input.resultWinnerId ? "empty" : "pending", points: 0, winnerPoints: 0, mapPoints: 0, exact: false, mismatch: false };
   }
   if (!input.resultWinnerId) {
-    return { tone: "pending", points: 0, winnerPoints: 0, mapPoints: 0, exact: false };
+    return { tone: "pending", points: 0, winnerPoints: 0, mapPoints: 0, exact: false, mismatch: false };
   }
   const scored = scoreMatchPick({
     format: input.format,
@@ -52,7 +55,73 @@ export function gradeSeriesPick(input: {
     winnerPoints: scored.winnerPoints,
     mapPoints: scored.mapPoints,
     exact: scored.mapPoints > 0,
+    mismatch: false,
   };
+}
+
+const MISMATCH: SeriesGrade = { tone: "wrong", points: 0, winnerPoints: 0, mapPoints: 0, exact: false, mismatch: true };
+
+type PoolPick = {
+  round: number;
+  wins: number;
+  losses: number;
+  format: SeriesFormat;
+  teamAId: string;
+  teamBId: string;
+  winnerId: string | null;
+  scoreA: number | null;
+  scoreB: number | null;
+};
+
+/** Grade one simulated pick against the real slate. The pick's pool is its own path. */
+export function gradeSimulatedPick(pick: PoolPick, realMatches: RealSeries[], pools = enteringPools(realMatches)): SeriesGrade {
+  if (!pick.winnerId) {
+    return { tone: "empty", points: 0, winnerPoints: 0, mapPoints: 0, exact: false, mismatch: false };
+  }
+  const samePair = realMatches.filter((match) => pairKey(match.teamAId, match.teamBId) === pairKey(pick.teamAId, pick.teamBId));
+  const aligned = samePair.find((match) => sameMatchup(pick, match, pools.get(`${match.round}|${pairKey(match.teamAId, match.teamBId)}`)));
+  if (!aligned) {
+    return samePair.length > 0 ? MISMATCH : { tone: "pending", points: 0, winnerPoints: 0, mapPoints: 0, exact: false, mismatch: false };
+  }
+  const graded = gradeSeriesPick({
+    format: aligned.format,
+    pickWinnerId: pick.winnerId,
+    pickScoreA: pick.scoreA,
+    pickScoreB: pick.scoreB,
+    resultWinnerId: aligned.winnerId,
+    resultScoreA: aligned.scoreA,
+    resultScoreB: aligned.scoreB,
+  });
+  return { ...graded, final: aligned.scoreA != null && aligned.scoreB != null ? `${aligned.scoreA}-${aligned.scoreB}` : null };
+}
+
+/** Grade the cell for a real match. A pick from another pool scores nothing. */
+export function gradeRealMatch(input: {
+  pick: PoolPick | null;
+  real: RealSeries;
+  pool: RecordPool | null;
+}): SeriesGrade {
+  if (!input.pick?.winnerId) {
+    return gradeSeriesPick({
+      format: input.real.format,
+      pickWinnerId: null,
+      pickScoreA: null,
+      pickScoreB: null,
+      resultWinnerId: input.real.winnerId,
+      resultScoreA: input.real.scoreA,
+      resultScoreB: input.real.scoreB,
+    });
+  }
+  if (!sameMatchup(input.pick, input.real, input.pool)) return MISMATCH;
+  return gradeSeriesPick({
+    format: input.real.format,
+    pickWinnerId: input.pick.winnerId,
+    pickScoreA: input.pick.scoreA,
+    pickScoreB: input.pick.scoreB,
+    resultWinnerId: input.real.winnerId,
+    resultScoreA: input.real.scoreA,
+    resultScoreB: input.real.scoreB,
+  });
 }
 
 /** 3-0, 0-3, and advance stay pending until the real record decides them. */
@@ -81,20 +150,12 @@ export function pointsOnSeries(input: {
   round1: Array<{ teamAId: string; teamBId: string }>;
   picks: BracketPick[];
   match: RealSeries;
+  slate?: RealSeries[];
 }): number {
+  const slate = input.slate ?? [input.match];
+  const pools = enteringPools(slate);
+  const pool = pools.get(`${input.match.round}|${pairKey(input.match.teamAId, input.match.teamBId)}`) ?? null;
   const simulated = projectBracket({ teams: input.teams, round1: input.round1, picks: input.picks });
-  const key = pairKey(input.match.teamAId, input.match.teamBId);
-  const pick =
-    simulated.find((row) => row.round === input.match.round && pairKey(row.teamAId, row.teamBId) === key) ??
-    simulated.find((row) => pairKey(row.teamAId, row.teamBId) === key);
-  if (!pick) return 0;
-  return gradeSeriesPick({
-    format: input.match.format,
-    pickWinnerId: pick.winnerId,
-    pickScoreA: pick.scoreA,
-    pickScoreB: pick.scoreB,
-    resultWinnerId: input.match.winnerId,
-    resultScoreA: input.match.scoreA,
-    resultScoreB: input.match.scoreB,
-  }).points;
+  const pick = simulated.find((row) => sameMatchup(row, input.match, pool) && row.winnerId) ?? null;
+  return gradeRealMatch({ pick, real: input.match, pool }).points;
 }

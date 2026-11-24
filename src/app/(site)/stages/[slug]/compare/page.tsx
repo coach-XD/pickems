@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { LeaderboardTable } from "@/components/LeaderboardTable";
-import { derivedPlacements, projectBracket } from "@/lib/bracket";
+import { derivedPlacements, enteringPools, projectBracket } from "@/lib/bracket";
 import { demoCookieOn, getSessionPlayer } from "@/lib/auth";
 import { allowDemoData } from "@/lib/logos";
 import { getLeaderboard, getStageBySlug, listBrackets, listStages, pointsSinceLastResult, stageBundle } from "@/lib/queries";
-import { gradePlacementPick, gradeSeriesPick, type PickTone } from "@/lib/results";
+import { gradePlacementPick, gradeRealMatch, type PickTone } from "@/lib/results";
 import { pairKey } from "@/lib/swiss";
 import { earliest, isLocked } from "@/lib/time";
 import { SLOT_LABEL, type Slot } from "@/lib/types";
@@ -44,6 +44,7 @@ export default async function ComparePage({ params }: { params: Promise<{ slug: 
   const slateLocked = isLocked(earliest(bundle.matches.filter((match) => match.round === 1).map((match) => match.scheduledAt), stage.startsAt), new Date());
   const teamName = new Map(bundle.teams.map((team) => [team.teamId, team.shortName]));
   const records = new Map(bundle.standings.map((row) => [row.teamId, { wins: row.wins, losses: row.losses }]));
+  const pools = enteringPools(bundle.matches);
 
   const projected = new Map(
     board.map((entry) => {
@@ -63,7 +64,7 @@ export default async function ComparePage({ params }: { params: Promise<{ slug: 
         </Link>
         <h1 className="text-3xl font-semibold tracking-tight">{stage.name}</h1>
         <p className="mt-1 text-sm text-zinc-400">
-          {slateLocked ? "Brackets are locked, so every pick is visible." : "Other brackets stay hidden until the lock."} Green is a right winner, red is a miss, grey is still pending. +N is the points from the latest saved result.
+          {slateLocked ? "Brackets are locked, so every pick is visible." : "Other brackets stay hidden until the lock."} A pick scores only when the real match is the same round and the same record. Green is a right winner, red is a miss, grey is still pending. +N is the points from the latest saved result.
         </p>
       </div>
 
@@ -107,7 +108,7 @@ export default async function ComparePage({ params }: { params: Promise<{ slug: 
                       </Link>
                     </th>
                     {bundle.matches.map((match) => {
-                      const cell = hidden ? null : gradeCell(projected.get(entry.playerId)?.byPair.get(pairKey(match.teamAId, match.teamBId)), match, teamName);
+                      const cell = hidden ? null : gradeCell(projected.get(entry.playerId)?.byPair.get(pairKey(match.teamAId, match.teamBId)), match, pools, teamName);
                       const tone = hidden ? "hidden" : (cell?.tone ?? "empty");
                       return (
                         <td key={match.id} className={cx("border-b border-white/5 px-2 py-2 align-top", toneClass[tone])}>
@@ -153,7 +154,7 @@ export default async function ComparePage({ params }: { params: Promise<{ slug: 
                     </li>
                   );
                 }
-                const cell = gradeCell(projected.get(entry.playerId)?.byPair.get(pairKey(match.teamAId, match.teamBId)), match, teamName);
+                const cell = gradeCell(projected.get(entry.playerId)?.byPair.get(pairKey(match.teamAId, match.teamBId)), match, pools, teamName);
                 return (
                   <li key={entry.playerId} className="flex items-center justify-between gap-3 py-1.5 text-sm">
                     <span className="font-medium">{entry.name}</span>
@@ -210,19 +211,17 @@ export default async function ComparePage({ params }: { params: Promise<{ slug: 
 }
 
 function gradeCell(
-  pick: { winnerId: string | null; scoreA: number | null; scoreB: number | null; format: "bo1" | "bo3" } | undefined,
-  match: { format: "bo1" | "bo3"; winnerId: string | null; scoreA: number | null; scoreB: number | null },
+  pick: { round: number; wins: number; losses: number; format: "bo1" | "bo3"; teamAId: string; teamBId: string; winnerId: string | null; scoreA: number | null; scoreB: number | null } | undefined,
+  match: { round: number; format: "bo1" | "bo3"; teamAId: string; teamBId: string; winnerId: string | null; scoreA: number | null; scoreB: number | null },
+  pools: Map<string, { wins: number; losses: number }>,
   teamName: Map<string, string>,
 ): { tone: PickTone; label: string; detail: string } {
-  const grade = gradeSeriesPick({
-    format: match.format,
-    pickWinnerId: pick?.winnerId ?? null,
-    pickScoreA: pick?.scoreA ?? null,
-    pickScoreB: pick?.scoreB ?? null,
-    resultWinnerId: match.winnerId,
-    resultScoreA: match.scoreA,
-    resultScoreB: match.scoreB,
+  const grade = gradeRealMatch({
+    pick: pick ?? null,
+    real: match,
+    pool: pools.get(`${match.round}|${pairKey(match.teamAId, match.teamBId)}`) ?? null,
   });
+  if (grade.mismatch) return { tone: "wrong", label: "Matchup didn't happen", detail: "0" };
   const picked = pick?.winnerId ? (teamName.get(pick.winnerId) ?? "Pick") : "No pick";
   const margin = pick?.scoreA != null && pick.scoreB != null ? ` ${Math.max(pick.scoreA, pick.scoreB)}-${Math.min(pick.scoreA, pick.scoreB)}` : "";
   const detail =

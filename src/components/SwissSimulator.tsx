@@ -5,7 +5,7 @@ import { resolveLogo } from "@/lib/logos";
 import { saveBracket } from "@/app/actions/picks";
 import { derivedPlacements, picksFromBracket, projectBracket, type BracketPick, type RealSeries } from "@/lib/bracket";
 import { displayOdds } from "@/lib/odds/price";
-import { gradePlacementPick, gradeSeriesPick, type PlacementGrade } from "@/lib/results";
+import { gradePlacementPick, gradeSimulatedPick, type PlacementGrade } from "@/lib/results";
 import { deriveStandings, pairKey } from "@/lib/swiss";
 import type { Slot } from "@/lib/types";
 import { ResetControl, SaveStatus } from "@/components/SaveState";
@@ -54,11 +54,6 @@ export function SwissSimulator({
     for (const row of realOdds) map.set(pairKey(row.teamAId, row.teamBId), row);
     return map;
   }, [realOdds]);
-  const realByPair = useMemo(() => {
-    const map = new Map<string, RealSeries>();
-    for (const match of realMatches) map.set(pairKey(match.teamAId, match.teamBId), match);
-    return map;
-  }, [realMatches]);
   const realRecords = useMemo(() => {
     const standings = deriveStandings(
       teams,
@@ -166,18 +161,7 @@ export function SwissSimulator({
                     {inRound
                       .filter((match) => `${match.wins}-${match.losses}` === record)
                       .map((match) => {
-                        const real = realByPair.get(pairKey(match.teamAId, match.teamBId));
-                        const grade = showGrades
-                          ? gradeSeriesPick({
-                              format: real?.format ?? match.format,
-                              pickWinnerId: match.winnerId,
-                              pickScoreA: match.scoreA,
-                              pickScoreB: match.scoreB,
-                              resultWinnerId: real?.winnerId ?? null,
-                              resultScoreA: real?.scoreA ?? null,
-                              resultScoreB: real?.scoreB ?? null,
-                            })
-                          : null;
+                        const grade = showGrades ? gradeSimulatedPick(match, realMatches) : null;
                         const verdict = grade && grade.tone !== "empty" && grade.tone !== "pending" ? grade.tone : null;
                         const margin =
                           match.scoreA != null && match.scoreB != null
@@ -240,8 +224,11 @@ export function SwissSimulator({
                                   grade.tone === "pending" && "text-zinc-500",
                                 )}
                               >
-                                {real?.winnerId && real.scoreA != null ? `Final ${real.scoreA}-${real.scoreB} · ` : ""}
-                                {grade.tone === "pending" ? "Pending" : grade.exact ? `+${grade.points} exact` : grade.tone === "correct" ? `+${grade.points}` : "0"}
+                                {grade.mismatch
+                                  ? "Matchup didn't happen"
+                                  : grade.tone === "pending"
+                                    ? "Pending"
+                                    : `${grade.final ? `Final ${grade.final} · ` : ""}${grade.exact ? `+${grade.points} exact` : grade.tone === "correct" ? `+${grade.points}` : "0"}`}
                               </p>
                             ) : null}
                           </article>
