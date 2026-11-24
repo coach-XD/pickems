@@ -2,11 +2,12 @@ import { asc, eq, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { getDb } from "@/db";
 import { bracketPicks, matchOdds, matchPicks, matches, placementPicks, players, stageTeams, stages, teamPlayers, teams } from "@/db/schema";
-import { scoreBracket } from "./bracket";
+import { scoreBracket, type BracketPick, type RealSeries } from "./bracket";
 import { allowDemoData, resolveLogo } from "./logos";
 import { scorePlayoff, type PlayoffPick } from "./playoff";
 import { rankRows, type RankedScore } from "./ranking";
 import { addStageScores, emptyStageScore } from "./scoring";
+import { latestScoredMatch, pointsOnSeries } from "./results";
 import { deriveStandings, groupByRecord } from "./swiss";
 import type { SeriesFormat, Slot } from "./types";
 
@@ -36,6 +37,7 @@ export type MatchView = {
   winnerId: string | null;
   scoreA: number | null;
   scoreB: number | null;
+  resultAt: Date | null;
   teamAId: string;
   teamBId: string;
   teamAName: string;
@@ -197,6 +199,7 @@ export async function listStageMatches(stageId: string): Promise<MatchView[]> {
       winnerId: matches.winnerId,
       scoreA: matches.scoreA,
       scoreB: matches.scoreB,
+      resultAt: matches.resultAt,
       teamAId: matches.teamAId,
       teamBId: matches.teamBId,
       teamAName: teamA.name,
@@ -312,6 +315,42 @@ export type StoredOdds = {
   oddsB: number;
   manual: boolean;
 };
+
+/** Points each player earned from the most recently saved result in these stages. */
+export async function pointsSinceLastResult(stageIds: string[]): Promise<Map<string, number>> {
+  const gains = new Map<string, number>();
+  if (stageIds.length === 0) return gains;
+  const db = getDb();
+  const matchRows = await db.select().from(matches).where(inArray(matches.stageId, stageIds));
+  const latest = latestScoredMatch(matchRows);
+  if (!latest?.winnerId) return gains;
+  const enrolled = await db.select().from(stageTeams).where(eq(stageTeams.stageId, latest.stageId));
+  const brackets = await db.select().from(bracketPicks).where(eq(bracketPicks.stageId, latest.stageId));
+  const round1 = matchRows
+    .filter((match) => match.stageId === latest.stageId && match.round === 1)
+    .map((match) => ({ teamAId: match.teamAId, teamBId: match.teamBId }));
+  const series: RealSeries = {
+    round: latest.round,
+    teamAId: latest.teamAId,
+    teamBId: latest.teamBId,
+    format: latest.format,
+    winnerId: latest.winnerId,
+    scoreA: latest.scoreA,
+    scoreB: latest.scoreB,
+  };
+  for (const bracket of brackets) {
+    gains.set(
+      bracket.playerId,
+      pointsOnSeries({
+        teams: enrolled.map((row) => ({ teamId: row.teamId, seed: row.seed })),
+        round1,
+        picks: (bracket.picks ?? []) as BracketPick[],
+        match: series,
+      }),
+    );
+  }
+  return gains;
+}
 
 export async function listStageOdds(stageId: string): Promise<StoredOdds[]> {
   const rows = await getDb()
