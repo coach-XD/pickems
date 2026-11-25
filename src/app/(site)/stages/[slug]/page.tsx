@@ -77,10 +77,10 @@ export default async function StagePage({ params }: { params: Promise<{ slug: st
                         shortName={row.team.shortName}
                         logoUrl={row.team.logoUrl}
                         seed={row.team.seed}
+                        worldRank={row.team.worldRank}
                         compact
                       />
                       <span className="shrink-0 text-right text-[11px] text-zinc-500">
-                        {row.team.worldRank != null ? <span className="block">World #{row.team.worldRank}</span> : null}
                         {row.team.otherRank != null ? <span className="block text-amber-200/80">#{row.team.otherRank}</span> : null}
                       </span>
                     </li>

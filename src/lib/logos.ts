@@ -20,6 +20,23 @@ export const TEAM_LOGOS: Record<string, string> = {
   FlyQuest: "/logos/flyquest.svg",
   "Chinggis Warriors": "/logos/chinggis.png",
   "Lynn Vision": "/logos/lynn-vision.png",
+  FUT: "/logos/fut.png",
+  Nemiga: "/logos/nemiga.png",
+  G2: "/logos/g2.png",
+  // No public "The One" mark was available. This is the previous 1win wordmark.
+  "1win (The One)": "/logos/1win.png",
+  NAVI: "/logos/navi.png",
+  Astralis: "/logos/astralis.png",
+  "The MongolZ": "/logos/mongolz.png",
+  MIBR: "/logos/mibr.png",
+  MOUZ: "/logos/mouz.png",
+  Vitality: "/logos/vitality.png",
+  FURIA: "/logos/furia.png",
+  Aurora: "/logos/aurora.png",
+  Spirit: "/logos/spirit.png",
+  "BetBoom (BB Team)": "/logos/betboom.png",
+  Falcons: "/logos/falcons.png",
+  Legacy: "/logos/legacy.png",
 };
 
 export function resolveLogo(team: { name: string; logoUrl?: string | null }): string | null {
