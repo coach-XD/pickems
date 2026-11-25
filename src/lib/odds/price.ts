@@ -7,6 +7,29 @@ export const PROJECTED_MARGIN = 1.05;
 export const ODDSPAPI_SPORT_ID = 17;
 export const DEFAULT_TOURNAMENT_ID = "51216";
 
+/** Later stages stay on projected prices. Stage 1 and the sample stage can show a book line. */
+const PROJECTED_ONLY_SLUGS = new Set(["stage-2", "stage-3", "playoffs"]);
+
+export function stageUsesLiveOdds(slug: string): boolean {
+  return !PROJECTED_ONLY_SLUGS.has(slug);
+}
+
+/** Drop a stored book line for stages that only show a projected price. */
+export function oddsForStage(
+  slug: string,
+  input: {
+    pointsA: number | null | undefined;
+    pointsB: number | null | undefined;
+    realA?: number | null;
+    realB?: number | null;
+  },
+) {
+  if (!stageUsesLiveOdds(slug)) {
+    return displayOdds({ pointsA: input.pointsA, pointsB: input.pointsB });
+  }
+  return displayOdds(input);
+}
+
 /**
  * Steady state is one unibet call every 6 hours. 24 / 6 × 31 days is about
  * 124 requests a month, under the free-tier cap of 250. A second /fixtures

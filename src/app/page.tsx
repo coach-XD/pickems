@@ -6,7 +6,7 @@ import { demoCookieOn, getSessionPlayer } from "@/lib/auth";
 import { allowDemoData } from "@/lib/logos";
 import { TeamBadge } from "@/components/TeamBadge";
 import { maybeRefreshOdds } from "@/lib/odds/refresh";
-import { displayOdds } from "@/lib/odds/price";
+import { oddsForStage, stageUsesLiveOdds } from "@/lib/odds/price";
 import { LeaderboardTable } from "@/components/LeaderboardTable";
 import { getLeaderboard, hasDemoStage, listStageOdds, listStageMatches, listStageTeams, listStages, pointsSinceLastResult } from "@/lib/queries";
 import { btnGhost, cardClass, cx } from "@/lib/ui";
@@ -29,8 +29,9 @@ export default async function Home({
   const stageIds = selected ? [selected.id] : realStages.map((stage) => stage.id);
   const board = await getLeaderboard(stageIds, Boolean(selected?.isDemo));
   const gains = await pointsSinceLastResult(stageIds);
-  const logoStageId = selected?.id ?? realStages[0]?.id;
-  void maybeRefreshOdds();
+  const oddsStage = selected ?? realStages[0] ?? null;
+  const logoStageId = oddsStage?.id;
+  if (!oddsStage || stageUsesLiveOdds(oddsStage.slug)) void maybeRefreshOdds();
   const field = logoStageId ? await listStageTeams(logoStageId) : [];
   const round1 = logoStageId ? (await listStageMatches(logoStageId)).filter((match) => match.round === 1) : [];
   const odds = logoStageId ? await listStageOdds(logoStageId) : [];
@@ -93,7 +94,7 @@ export default async function Home({
                 const stored = odds.find((row) => row.matchId === match.id);
                 const teamA = teamById.get(match.teamAId);
                 const teamB = teamById.get(match.teamBId);
-                const line = displayOdds({
+                const line = oddsForStage(oddsStage?.slug ?? "stage-1", {
                   pointsA: teamA?.vrsPoints,
                   pointsB: teamB?.vrsPoints,
                   realA: stored?.oddsA,

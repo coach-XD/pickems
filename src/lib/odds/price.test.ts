@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { STAGE1_TEAMS } from "@/db/stage1";
 import sample from "./fixtures/pgl-singapore-round1.json";
 import { listFixtureParticipants, listFixtures, listOddsRows, mapParticipants, matchOurTeams, priceMappedFixtures, winnerPrices } from "./parse";
-import { eloWinProbability, fairPercents, namesMatch, projectedPrice } from "./price";
+import { eloWinProbability, fairPercents, namesMatch, oddsForStage, projectedPrice, stageUsesLiveOdds } from "./price";
 
 describe("projected VRS prices", () => {
   it("shrinks the Elo gap and adds a five percent margin", () => {
@@ -11,6 +11,23 @@ describe("projected VRS prices", () => {
     expect(heroic.percent).toBe(62);
     expect(heroic.odds).toBe(1.54);
     expect(projectedPrice(1500, 1500)).toEqual({ odds: 1.9, percent: 50 });
+  });
+});
+
+describe("live odds by stage", () => {
+  it("keeps book lines on Stage 1 and uses a projected price later", () => {
+    expect(stageUsesLiveOdds("stage-1")).toBe(true);
+    expect(stageUsesLiveOdds("demo-stage")).toBe(true);
+    expect(stageUsesLiveOdds("stage-2")).toBe(false);
+    expect(stageUsesLiveOdds("stage-3")).toBe(false);
+    expect(stageUsesLiveOdds("playoffs")).toBe(false);
+
+    const input = { pointsA: 1960, pointsB: 1922, realA: 1.41, realB: 2.8 };
+    expect(oddsForStage("stage-1", input)).toMatchObject({ oddsA: 1.41, oddsB: 2.8, projected: false });
+    const later = oddsForStage("stage-2", input);
+    expect(later?.projected).toBe(true);
+    expect(later?.oddsA).not.toBe(1.41);
+    expect(oddsForStage("playoffs", input)?.projected).toBe(true);
   });
 });
 

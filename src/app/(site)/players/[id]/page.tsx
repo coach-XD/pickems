@@ -9,6 +9,7 @@ import { bracketStatus, canViewPicks } from "@/lib/pickVisibility";
 import { scorePlayoff } from "@/lib/playoff";
 import { gradePlacementPick } from "@/lib/results";
 import { SLOT_LABEL } from "@/lib/types";
+import { stageUsesLiveOdds } from "@/lib/odds/price";
 import { maybeRefreshOdds } from "@/lib/odds/refresh";
 import { listBrackets, listPlayers, listStageOdds, listStages, stageBundle } from "@/lib/queries";
 import { deriveStandings } from "@/lib/swiss";
@@ -42,8 +43,9 @@ export default async function PlayerPicksPage({
   }
 
   const bundle = await stageBundle(stage.id);
-  void maybeRefreshOdds();
-  const odds = await listStageOdds(stage.id);
+  const liveOdds = stageUsesLiveOdds(stage.slug);
+  if (liveOdds) void maybeRefreshOdds();
+  const odds = liveOdds ? await listStageOdds(stage.id) : [];
   const brackets = await listBrackets(stage.id);
   const stored = brackets.find((row) => row.playerId === person.id);
   const picks = stored?.picks ?? [];
