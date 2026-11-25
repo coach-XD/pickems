@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { after } from "next/server";
 import { getDb, getSql } from "@/db";
-import { matchOdds, matches, teams } from "@/db/schema";
+import { matchOdds, matches, stages, teams } from "@/db/schema";
 import { listFixtureParticipants, listOddsRows, mapParticipants, winnerPrices } from "./parse";
 import {
   DEFAULT_BOOKMAKER,
@@ -10,9 +10,26 @@ import {
   MONTHLY_REQUEST_BUDGET,
   ODDSPAPI_SPORT_ID,
   STALE_MS,
+  stageUsesLiveOdds,
 } from "./price";
 
 const BASE = "https://api.oddspapi.io/v4";
+
+function rowCouldBeLive(
+  rows: Array<{ participant1Id: number; participant2Id: number }>,
+  participantId: number,
+  mapping: Map<number, { id: string }>,
+  liveTeamIds: Set<string>,
+): boolean {
+  return rows.some((row) => {
+    const ids = [row.participant1Id, row.participant2Id];
+    if (!ids.includes(participantId)) return false;
+    const otherId = ids[0] === participantId ? ids[1] : ids[0];
+    const other = mapping.get(otherId);
+    if (!other) return true;
+    return liveTeamIds.has(other.id);
+  });
+}
 
 /**
  * One unibet tournament call every 6 hours, about 124 requests a month.
@@ -21,7 +38,8 @@ const BASE = "https://api.oddspapi.io/v4";
  * last_attempt_at still moves so an empty refresh waits 6 hours.
  * The bookmaker query accepts exactly one book. Prices are display-only.
  */
-export async function maybeRefreshOdds(): Promise<void> {
+export async function maybeRefreshOdds(stageSlug?: string): Promise<void> {
+  if (stageSlug && !stageUsesLiveOdds(stageSlug)) return;
   if (!process.env.ODDSPAPI_API_KEY) return;
   try {
     if (!(await isStale())) return;
@@ -104,12 +122,21 @@ async function pullOdds(key: string, usage: { calls: number }): Promise<void> {
   }
   const rows = listOddsRows(payload);
   const db = getDb();
+  const stageRows = await db.select({ id: stages.id, slug: stages.slug }).from(stages);
+  const liveStageIds = new Set(stageRows.filter((stage) => stageUsesLiveOdds(stage.slug)).map((stage) => stage.id));
   const roster = await db
     .select({ id: teams.id, name: teams.name, oddspapiId: teams.oddspapiId })
     .from(teams);
   const mapping = new Map(roster.flatMap((team) => (team.oddspapiId == null ? [] : [[team.oddspapiId, team] as const])));
+  const series = await db.select().from(matches);
+  const liveTeamIds = new Set<string>();
+  for (const match of series) {
+    if (!liveStageIds.has(match.stageId)) continue;
+    liveTeamIds.add(match.teamAId);
+    liveTeamIds.add(match.teamBId);
+  }
   const needed = new Set(rows.flatMap((row) => [row.participant1Id, row.participant2Id]));
-  const missing = [...needed].filter((id) => !mapping.has(id));
+  const missing = [...needed].filter((id) => !mapping.has(id) && rowCouldBeLive(rows, id, mapping, liveTeamIds));
   if (missing.length > 0) {
     usage.calls += 1;
     const fixturesPayload = await apiGet(key, "/fixtures", {
@@ -128,7 +155,6 @@ async function pullOdds(key: string, usage: { calls: number }): Promise<void> {
     }
   }
 
-  const series = await db.select().from(matches);
   const manual = new Set(
     (await db.select({ matchId: matchOdds.matchId }).from(matchOdds).where(eq(matchOdds.manual, true))).map((row) => row.matchId),
   );
@@ -144,7 +170,7 @@ async function pullOdds(key: string, usage: { calls: number }): Promise<void> {
       const ids = new Set([seriesMatch.teamAId, seriesMatch.teamBId]);
       return ids.has(side1.id) && ids.has(side2.id);
     });
-    if (!match || manual.has(match.id)) continue;
+    if (!match || !liveStageIds.has(match.stageId) || manual.has(match.id)) continue;
     const oddsFor = new Map<string, number>([
       [side1.id, prices.price1],
       [side2.id, prices.price2],

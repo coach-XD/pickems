@@ -5,6 +5,7 @@ import { LocalTime } from "@/components/LocalTime";
 import { TeamBadge } from "@/components/TeamBadge";
 import { demoCookieOn, getSessionPlayer } from "@/lib/auth";
 import { allowDemoData } from "@/lib/logos";
+import { stageUsesLiveOdds } from "@/lib/odds/price";
 import { maybeRefreshOdds } from "@/lib/odds/refresh";
 import { getStageBySlug, stageBundle } from "@/lib/queries";
 import { earliest, lockInstant } from "@/lib/time";
@@ -20,7 +21,7 @@ export default async function StagePage({ params }: { params: Promise<{ slug: st
   const stage = await getStageBySlug(slug);
   if (!stage || (stage.isDemo && !includeDemo)) notFound();
   const bundle = await stageBundle(stage.id);
-  void maybeRefreshOdds();
+  if (stageUsesLiveOdds(stage.slug)) void maybeRefreshOdds();
   const advanced = bundle.standings.filter((row) => row.status === "advanced").length;
   const eliminated = bundle.standings.filter((row) => row.status === "eliminated").length;
   const firstStart = earliest(

@@ -1,10 +1,15 @@
 import "dotenv/config";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray, not } from "drizzle-orm";
 import { closeDb, getDb } from "./index";
 import { FUTURE_STAGES } from "./futureStages";
 import { isUniqueViolation } from "@/lib/validators";
 import { stageTeams, stages, teamPlayers, teams } from "./schema";
 import { STAGE23_TEAMS } from "./stage23";
+
+/** Earlier local draft used this name. Production has neither row. */
+const PREVIOUS_NAMES: Record<string, string[]> = {
+  "Natus Vincere": ["NAVI"],
+};
 
 const STAGE_SLUGS = ["stage-2", "stage-3"] as const;
 
@@ -41,7 +46,14 @@ async function main() {
   let playersWritten = 0;
 
   for (const invite of STAGE23_TEAMS) {
-    const [existingTeam] = await db.select().from(teams).where(eq(teams.name, invite.name)).limit(1);
+    let existingTeam: typeof teams.$inferSelect | undefined;
+    for (const name of [invite.name, ...(PREVIOUS_NAMES[invite.name] ?? [])]) {
+      const [found] = await db.select().from(teams).where(eq(teams.name, name)).limit(1);
+      if (found) {
+        existingTeam = found;
+        break;
+      }
+    }
     const team =
       existingTeam ??
       (
@@ -60,9 +72,10 @@ async function main() {
       await db
         .update(teams)
         .set({
+          name: invite.name,
           shortName: invite.shortName,
           region: invite.region,
-          ...(invite.oddspapiId != null ? { oddspapiId: invite.oddspapiId } : {}),
+          oddspapiId: invite.oddspapiId,
         })
         .where(eq(teams.id, existingTeam.id));
     }
@@ -101,33 +114,30 @@ async function main() {
     }
     stageRows += 1;
 
-    const roster = await db.select().from(teamPlayers).where(eq(teamPlayers.teamId, team.id));
-    const byNick = new Map(roster.map((player) => [player.nickname, player]));
-    const usedSlots = new Set(roster.map((player) => player.sortOrder));
+    const nicknames = invite.players.map((player) => player.nickname);
+    await db.delete(teamPlayers).where(and(eq(teamPlayers.teamId, team.id), not(inArray(teamPlayers.nickname, nicknames))));
     for (const [index, player] of invite.players.entries()) {
-      const current = byNick.get(player.nickname);
+      const [current] = await db
+        .select()
+        .from(teamPlayers)
+        .where(and(eq(teamPlayers.teamId, team.id), eq(teamPlayers.nickname, player.nickname)))
+        .limit(1);
+      const ratingUpdatedAt = player.rating == null ? null : new Date();
       if (!current) {
-        if (usedSlots.has(index)) {
-          console.log(`${invite.name}: slot ${index} is taken, skipped ${player.nickname}.`);
-          continue;
-        }
         await db.insert(teamPlayers).values({
           teamId: team.id,
           nickname: player.nickname,
           sortOrder: index,
           rating: player.rating,
-          ratingUpdatedAt: player.rating == null ? null : new Date(),
+          ratingUpdatedAt,
         });
-        usedSlots.add(index);
         playersWritten += 1;
         continue;
       }
-      if (current.rating == null && player.rating != null) {
-        await db
-          .update(teamPlayers)
-          .set({ rating: player.rating, ratingUpdatedAt: new Date() })
-          .where(eq(teamPlayers.id, current.id));
-      }
+      await db
+        .update(teamPlayers)
+        .set({ sortOrder: index, rating: player.rating, ratingUpdatedAt })
+        .where(eq(teamPlayers.id, current.id));
     }
   }
 

@@ -23,9 +23,8 @@ export const TEAM_LOGOS: Record<string, string> = {
   FUT: "/logos/fut.png",
   Nemiga: "/logos/nemiga.png",
   G2: "/logos/g2.png",
-  // No public "The One" mark was available. This is the previous 1win wordmark.
   "1win (The One)": "/logos/1win.png",
-  NAVI: "/logos/navi.png",
+  "Natus Vincere": "/logos/navi.png",
   Astralis: "/logos/astralis.png",
   "The MongolZ": "/logos/mongolz.png",
   MIBR: "/logos/mibr.png",

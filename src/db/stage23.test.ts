@@ -24,7 +24,30 @@ describe("stage 2 and 3 invites", () => {
       expect(team.players).toHaveLength(5);
       expect(new Set(team.players.map((player) => player.nickname)).size).toBe(5);
     }
-    expect(STAGE23_TEAMS.find((team) => team.name === "MOUZ")).toMatchObject({ worldRank: 1, vrsPoints: 1960 });
-    expect(STAGE23_TEAMS.find((team) => team.name === "1win (The One)")).toMatchObject({ worldRank: 12, vrsPoints: 1598 });
+    const mouz = STAGE23_TEAMS.find((team) => team.name === "MOUZ");
+    expect(mouz).toMatchObject({ worldRank: 1, otherRank: 1, vrsPoints: 1960, oddspapiId: 220604, shortName: "MOUZ" });
+    expect(mouz?.players.map((player) => [player.nickname, player.rating])).toEqual([
+      ["torzsi", 1.12],
+      ["xertioN", 1.13],
+      ["Spinx", 1.12],
+      ["xelex", 1.06],
+      ["PR", 1.06],
+    ]);
+    expect(STAGE23_TEAMS.find((team) => team.name === "1win (The One)")).toMatchObject({
+      shortName: "ONE",
+      worldRank: 16,
+      otherRank: 12,
+      vrsPoints: 1598,
+      oddspapiId: null,
+    });
+    expect(STAGE23_TEAMS.find((team) => team.name === "Natus Vincere")?.shortName).toBe("NAVI");
+    expect(STAGE23_TEAMS.find((team) => team.name === "Vitality")).toMatchObject({ shortName: "VIT", worldRank: 3, otherRank: 2 });
+    expect(STAGE23_TEAMS.find((team) => team.name === "Astralis")?.players.find((player) => player.nickname === "Anlelele")?.rating).toBeNull();
+    expect(STAGE23_TEAMS.filter((team) => team.oddspapiId == null).map((team) => team.name).sort()).toEqual([
+      "1win (The One)",
+      "FUT",
+      "Legacy",
+      "Nemiga",
+    ]);
   });
 });

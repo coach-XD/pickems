@@ -9,6 +9,7 @@ import { getSessionPlayer } from "@/lib/auth";
 import { listBrackets, listStageOdds, listStageRoster, stageBundle, listStages } from "@/lib/queries";
 import { demoCookieOn } from "@/lib/auth";
 import { allowDemoData } from "@/lib/logos";
+import { stageUsesLiveOdds } from "@/lib/odds/price";
 import { maybeRefreshOdds } from "@/lib/odds/refresh";
 import { earliest, isLocked, lockInstant } from "@/lib/time";
 import { cardClass, cx } from "@/lib/ui";
@@ -41,8 +42,9 @@ export default async function PicksPage({
   }
 
   const bundle = await stageBundle(stage.id);
-  void maybeRefreshOdds();
-  const odds = await listStageOdds(stage.id);
+  const liveOdds = stageUsesLiveOdds(stage.slug);
+  if (liveOdds) void maybeRefreshOdds();
+  const odds = liveOdds ? await listStageOdds(stage.id) : [];
   const roster = await listStageRoster(stage.id);
   const brackets = await listBrackets(stage.id);
   const mine = brackets.find((row) => row.playerId === player.id);
