@@ -18,12 +18,15 @@ describe("placement slots", () => {
     expect(scorePlacementSlot("winless", 1, 0)).toEqual({ points: 0, correct: false });
   });
 
-  it("pays 2 for any advancing record in the advance slot, including 3-0", () => {
-    expect(scorePlacementSlot("advance", 3, 0)).toEqual({ points: 2, correct: true });
+  it("pays 2 for an advance pick only on a real 3-1 or 3-2", () => {
+    expect(scorePlacementSlot("advance", 3, 0)).toEqual({ points: 0, correct: false });
     expect(scorePlacementSlot("advance", 3, 1)).toEqual({ points: 2, correct: true });
     expect(scorePlacementSlot("advance", 3, 2)).toEqual({ points: 2, correct: true });
     expect(scorePlacementSlot("advance", 0, 3)).toEqual({ points: 0, correct: false });
-    expect(scorePlacementSlot("advance", 2, 2).correct).toBeNull();
+    expect(scorePlacementSlot("advance", 1, 3)).toEqual({ points: 0, correct: false });
+    expect(scorePlacementSlot("advance", 2, 3)).toEqual({ points: 0, correct: false });
+    expect(scorePlacementSlot("advance", 2, 0).correct).toBeNull();
+    expect(scorePlacementSlot("advance", 2, 1).correct).toBeNull();
   });
 });
 
@@ -103,10 +106,17 @@ describe("stage totals", () => {
       matches: [{ id: "m", format: "bo1", winnerId: "a", scoreA: 1, scoreB: 0 }],
       matchPicks: [{ matchId: "m", winnerId: "a", scoreA: null, scoreB: null }],
       placementPicks: [{ teamId: "hero", slot: "advance" }],
-      records: new Map([["hero", { wins: 3, losses: 0 }]]),
+      records: new Map([["hero", { wins: 3, losses: 1 }]]),
     });
     expect(first).toMatchObject({ placementPoints: 0, correctPlacements: 0 });
     expect(second).toMatchObject({ matchPoints: 1, placementPoints: 2, correctPlacements: 1 });
+    const perfectAdvance = scorePlayerStage({
+      matches: [],
+      matchPicks: [],
+      placementPicks: [{ teamId: "hero", slot: "advance" }],
+      records: new Map([["hero", { wins: 3, losses: 0 }]]),
+    });
+    expect(perfectAdvance).toMatchObject({ placementPoints: 0, correctPlacements: 0 });
     expect(addStageScores(first, second)).toMatchObject({
       matchPoints: 1,
       mapPoints: 0,

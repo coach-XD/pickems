@@ -8,9 +8,8 @@ export type PlacementScore = {
 };
 
 /**
- * 3-0 and 0-3 slots pay only for that exact record.
- * A team that advances 3-1 or 3-2 scores 0 in a 3-0 slot.
- * An "advances" slot pays for any advancing record, including 3-0.
+ * 3-0 picks pay only for a real 3-0. 0-3 picks pay only for a real 0-3.
+ * An advance pick pays only for a real 3-1 or 3-2. A 3-0 finish makes it wrong.
  */
 export function scorePlacementSlot(slot: Slot, wins: number, losses: number): PlacementScore {
   const status = teamStatus(wins, losses);
@@ -27,7 +26,8 @@ export function scorePlacementSlot(slot: Slot, wins: number, losses: number): Pl
     return { points: 0, correct: null };
   }
 
-  if (status === "advanced") return { points: 2, correct: true };
+  if (wins >= 3 && losses === 0) return { points: 0, correct: false };
+  if (wins >= 3 && (losses === 1 || losses === 2)) return { points: 2, correct: true };
   if (status === "eliminated") return { points: 0, correct: false };
   return { points: 0, correct: null };
 }

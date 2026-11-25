@@ -100,12 +100,17 @@ describe("placement verdicts", () => {
   it("keeps 3-0, 0-3, and advance pending until the record is decided", () => {
     expect(gradePlacementPick("perfect", 2, 0)).toEqual({ tone: "pending", points: 0 });
     expect(gradePlacementPick("winless", 0, 2)).toEqual({ tone: "pending", points: 0 });
+    expect(gradePlacementPick("advance", 2, 0)).toEqual({ tone: "pending", points: 0 });
     expect(gradePlacementPick("advance", 2, 2)).toEqual({ tone: "pending", points: 0 });
     expect(gradePlacementPick("perfect", 3, 0)).toEqual({ tone: "correct", points: 5 });
     expect(gradePlacementPick("perfect", 3, 1)).toEqual({ tone: "wrong", points: 0 });
     expect(gradePlacementPick("winless", 0, 3)).toEqual({ tone: "correct", points: 5 });
+    expect(gradePlacementPick("advance", 3, 0)).toEqual({ tone: "wrong", points: 0 });
+    expect(gradePlacementPick("advance", 3, 1)).toEqual({ tone: "correct", points: 2 });
     expect(gradePlacementPick("advance", 3, 2)).toEqual({ tone: "correct", points: 2 });
+    expect(gradePlacementPick("advance", 0, 3)).toEqual({ tone: "wrong", points: 0 });
     expect(gradePlacementPick("advance", 1, 3)).toEqual({ tone: "wrong", points: 0 });
+    expect(gradePlacementPick("advance", 2, 3)).toEqual({ tone: "wrong", points: 0 });
   });
 });
 
