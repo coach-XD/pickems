@@ -124,7 +124,7 @@ export function gradeRealMatch(input: {
   });
 }
 
-/** 3-0, 0-3, and advance stay pending until the real record decides them. */
+/** 3-0, 0-3, and 3-1/3-2 advance picks stay pending until the real record decides them. A 3-0 finish misses an advance pick. */
 export function gradePlacementPick(slot: Slot, wins: number, losses: number): PlacementGrade {
   const scored = scorePlacementSlot(slot, wins, losses);
   if (scored.correct == null) return { tone: "pending", points: 0 };
